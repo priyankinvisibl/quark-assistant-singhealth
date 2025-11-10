@@ -1,0 +1,23 @@
+version: '3' 
+
+tasks:
+  run:
+    cmds:
+      - uv run python -m src.app.main
+    env:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3000
+      APP_SUBPATH: /assistant
+      APP_CONFIG: ./tmp/config.yaml
+      STORAGES: true
+  promptstudio:
+    cmds:
+      - uv run python -m src.app.main
+    env:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3000
+      PROMPTSTUDIO: true
+      PROMPTSTUDIO_SUBPATH: /playground
+      APP_CONFIG: ./tmp/config.yaml
+      STORAGES: true
+      APP_SUBPATH: /assistant
