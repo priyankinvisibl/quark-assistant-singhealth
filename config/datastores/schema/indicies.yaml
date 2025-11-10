@@ -1,0 +1,75 @@
+---
+mappings:
+  dynamic: strict
+  properties:
+    id:
+      type: keyword
+    project:
+      type: keyword
+    owner:
+      type: keyword
+    shared_with:
+      type: keyword
+    version:
+      type: keyword
+    created_at:
+      type: date
+    updated_at:
+      type: date
+    metadata:
+      type: flat_object
+    embeddings:
+      dynamic: strict
+      properties:
+        index_id:
+          type: keyword
+        filename:
+          type: keyword
+        filepath:
+          type: keyword
+        embedded_at:
+          type: date
+        embedding_properties:
+          type: flat_object
+        embedder:
+          type: keyword
+---
+indexName: memories
+mappings:
+  dynamic: strict
+  properties:
+    memory_id:
+      type: keyword
+    created_at:
+      type: date
+    updated_at:
+      type: date
+    knowledgebase:
+      type: keyword
+    user:
+      type: keyword
+    name:
+      type: keyword
+    metadata:
+      type: flat_object
+---
+indexName: messages
+mappings:
+  dynamic: strict
+  properties:
+    memory_id:
+      type: keyword
+    message_id:
+      type: keyword
+    origin:
+      type: keyword
+    role:
+      type: keyword
+    content:
+      type: text
+    timestamp:
+      type: date
+    metadata:
+      type: flat_object
+    knowledgebase:
+      type: keyword

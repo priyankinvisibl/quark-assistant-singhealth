@@ -1,0 +1,69 @@
+---
+version: 1
+name: eutils
+description: Function description for eutils, esummary and efetch
+tools:
+  - module: eutils
+    spec:
+      type: function
+      function:
+        name: efetch
+        description: |
+          Full documents. Both db and id are mandatory,
+        parameters:
+          type: object
+          properties:
+            db:
+              type: string
+              description: |
+                The db to fetch data from
+            id:
+              type: string
+              description: |
+                Comma-separated list of IDs that the data should be fetched through
+          required:
+            - db
+            - id
+  - module: eutils
+    spec:
+      type: function
+      function:
+        name: esummary
+        description: |
+          Summary of documents. Both db and ids are mandatory
+        parameters:
+          type: object
+          properties:
+            db:
+              type: string
+              description: |
+                The db to fetch data from
+            id:
+              type: string
+              description: |
+                Comma-separated list of IDs that the data should be fetched through
+          required:
+            - db
+            - id
+  - module: eutils
+    spec: 
+      type: function
+      function:
+        name: esearch
+        description: |
+           The output will be a list of db ids,
+        parameters:
+          type: object
+          properties:
+            db:
+              type: string
+              description: |
+                Thea db to search from. 
+                Your possible options are "gene", "snp", "omim"
+            query:
+              type: string
+              description: |
+                The query to use in the search. Infer this from the user's message.
+          required:
+            - db
+            - query

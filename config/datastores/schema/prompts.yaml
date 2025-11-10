@@ -1,0 +1,43 @@
+---
+mappings:
+  dynamic: strict
+  properties:
+    metadata:
+      dynamic: strict
+      properties:
+        id:
+          type: keyword
+        name:
+          type: keyword
+        collection:
+          type: keyword
+        description:
+          type: keyword
+        createdAt:
+          type: date
+        updatedAt:
+          type: date
+        project:
+          type: keyword
+        owner:
+          type: keyword
+        sharedWith:
+          type: keyword
+        version:
+          type: keyword
+        tags:
+          type: flat_object
+    variables:
+      type: flat_object
+    prompts:
+      dynamic: strict
+      properties:
+        role:
+          type: keyword
+        content:
+          type: text
+        order:
+          type: integer
+        name:
+          type: str
+

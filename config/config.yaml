@@ -1,0 +1,104 @@
+package: quark-assistant
+paths:
+  prompts: "config/quark-assistant/prompts/{prompt}.yaml"
+  toolsets: "config/quark-assistant/toolsets/{toolset}.yaml"
+  query: 'datastores/query'
+vendors:
+  - aws
+  - azure
+  - google
+agents:
+  summarizer:
+    vendor: aws
+    prompt: summarizer
+  default: 
+    vendor: aws
+    prompt: default
+  image-gen: 
+    vendor: aws
+    prompt: image-gen
+  task-handler: 
+    vendor: aws
+    prompt: task-handler
+  validation: 
+    vendor: aws
+  qa: 
+    vendor: aws
+    prompt: qa
+  text-gen: 
+    vendor: aws
+    prompt: text-gen
+  re-bc5cdr: 
+    vendor: aws
+    prompt: re-bc5cdr
+  re-ddi: 
+    vendor: aws
+    prompt: re-ddi
+  ncbi: 
+    vendor: aws
+    prompt: ncbi
+    toolset: eutils
+  developer: 
+    vendor: aws
+    prompt: code-gen
+#   parameters:
+#     temperature: 
+#     max_tokens: 
+#     stop_sequences:
+#     top_p:
+models:
+  aws: 
+    name: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    values: {}
+  azure: 
+    name: azure-gpt-v3.5turbo
+    values:
+      azure_endpoint: https://openai-inv.openai.azure.com/
+      azure_deployment: openai-chatgpt-test
+      api_version: 2024-05-01-preview
+  google:
+    name: gemini-1.5-pro-002
+    values:
+      project_id: dark-matter-mpv-v1
+storages:
+  s3:
+    enabled: true
+    config: {}
+    stores:
+      myfiles: "s3://artifacts02/artifacts/{user}/{project}/uploads"
+      #add support for other datalocations through opensearch index
+  # opensearch:
+  #   enabled: true
+  #   config:
+  #     hosts: https://vpc-gravity-dev-opensearch-twyyo3waeyvxtpvdenhkt4rrda.us-east-1.es.amazonaws.com:443
+  #   stores:
+  #     users: users-v1-dev
+  #     messages: messages-v1-dev
+  #     embeddings: embeddings-v1-dev
+  #     prompts: prompts-v1-dev
+  #     memories: memories-v1-dev
+  #     datalocations: datalocations-v1-dev
+  #     knowledgebases: knowledgebases-v1-dev
+knowledgestores:
+  # opensearch:
+  #   retriever: 
+  #     type: bm25
+  #     config: {}
+  #   document_store: 
+  #     config: {}
+  #   embedder:
+  #     sentencetransformer: {}
+  #     azure:
+  #       azure_endpoint: https://openai-inv.openai.azure.com/
+  #       azure_deployment: openai-embedding
+
+knowledge_graph:
+  schema:
+    location: "datastores/neptune/schema.yaml"
+  gtex:
+    entities:
+      entities_path: "datastores/neptune/gtex/data/biocypher"
+      entities_file_type: "csv"
+    ner_path: "datastores/neptune/gtex/en_core_sci_sm-0.5.4"
+    graph_db:
+      endpoint: "https://your-neptune-cluster.cluster-xyz.us-east-1.neptune.amazonaws.com:8182"

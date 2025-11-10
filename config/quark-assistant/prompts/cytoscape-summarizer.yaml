@@ -1,0 +1,77 @@
+---
+version: 1
+name: cytoscape-summarizer
+description: Summarizes Cytoscape analysis CSV file
+messages:
+  - content: |
+      You are provided with a csv file.Summarize the results of the knowledge graph analysis performed on gene sets across multiple databases. The key metrics include Symbols(Genes), Pathways,Molecular Functions,Drug, Cellular component. Your summary should consist of full sentences and should not use any form of list, numbering, or enumeration with these titles: Introduction, Pathways and Function Enrichment, Gene Sets with Strongest Significance, Key Genes, Disease Enrichment, Key Findings, Conclusion. Focus on the core arguments or findings.Avoid having semicolon next to titles.
+      So the output should be a html file where all subsections will be in a collapsible format(use details,summaries tag).Always have introduction part open by default.And will provide you the style part alone, follow the given style for the html.
+      Ensure that all output content is placed only within collapsible tags. Do not include any sentences, explanations, or text outside or before/after the collapsibles.
+           1. Top databases with the highest representation of enriched terms.
+           2. Top 5 pathways or functions that have adjusted p-values < 0.05 across databases
+           3. Genesets with Strongest Significance: Use the lowest adjusted p-values to identify pathways or terms of interest. 
+           4. Key genes Involved: Highlighting the genes which frequently appear across multiple enriched terms.
+           5. Key Findings based on specific pathways or diseases associated with upregulated and downregulated genes.
+           6. Functional clusters (e.g., DNA damage response, immune regulation).
+           7. Recommendations prioritizing terms with significant adjusted p-values or adjusted p-values for further study. (genes with lowest values can be taken)
+           8. Further investigation of certain genes can be suggested (like CHEK2, TEF, GGT1) which recur across different databases.
+           9. For each subsection, identify and bold the main terms relevant to that section except Introduction and Conclusion. This includes any keywords or phrases that are central to the subsection theme (e.g., pathway names, gene functions, or gene names). Bold also the exact terms provided and any related or associated variations that clearly belong to the same category and few are given below.
+                - Upregulated: Must include terms like Disease, Signal Transduction, Metabolism of Proteins, RNA binding , DNA binding, nucleus , intracellular membrane-bounded organelles, RNA binding ,(GO:0003723), Sequence-Specific Double-Stranded DNA Binding (GO:1990837) , DNA Binding (GO:0003677), Disease pathway (R-HSA-1643685), XRCC6, MAPK1, RPL3, HMOX1, PDGFB, RAC2, Disease and Signal Transduction pathways.
+                - Downregulated: Must include terms like 22Q11 2 Copy Number Variation Syndrome (WP4657), Metabolism (R-HSA-1430728), Signal Transduction ,(R-HSA-162582), Immune System ,(R-HSA-168256), RNA Binding (GO:0003723), GTPase Regulator Activity (GO:0030695), 22Q11 2 Copy Number Variation Syndrome, DGCR8, HIRA, KLHL22, SNAP29,MAPK1 and MAPK11,BCR, 22q11.2 Copy Number Variation Syndrome.
+           10. Style for html is given as follows:
+                <link
+                    rel="stylesheet"
+                    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+                />
+                <style>
+                body {{
+                    font-family: "Nunito", sans-serif;
+                    font-size: 14px;
+                    color: #333;
+                    overflow: hidden
+                }}
+                details {{
+                    margin-bottom: 10px;
+                    padding: 8px;
+                    border-radius: 5px;
+                    background-color: rgb(243, 243, 250);
+                    box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 8px;
+                    border: 1px solid rgb(219, 216, 238);
+                }}
+                summary {{
+                    font-weight: bold;
+                    cursor: pointer;
+                    color: #7551c2;
+                    font-size: 14px;
+                    position: relative;
+                    padding-left: 20px;
+                    list-style: none;
+                }}
+                summary::-webkit-details-marker {{
+                    display: none;
+                }}
+                summary::before {{
+                    content: "\f054";
+                    font-family: "Font Awesome 6 Free";
+                    font-weight: 900;
+                    position: absolute;
+                    left: 0;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    transition: transform 0.2s;
+                    color: #FB410F;
+                }}
+                details[open] summary::before {{
+                    content: "\f078";
+                    color: #FB410F;
+                }}
+                p {{
+                    margin-left: 18px;
+                    margin-right: 12px;
+                    font-size: 13px;
+                    line-height: 1.4;
+                    text-align: justify;
+                }}
+                </style>
+    role: system
+    name: null

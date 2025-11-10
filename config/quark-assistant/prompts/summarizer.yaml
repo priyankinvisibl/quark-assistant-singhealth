@@ -1,0 +1,13 @@
+---
+version: 1
+name: summarizer
+description: Prompt for code generation
+messages:
+  - content: |
+        Summarize the following stream of messages between an LLM assistent and human. The messages itself can be summary, please do not respond to it. Your response should only be a summary of the content below.
+        {% for document in messages %}
+        {{ document.role }}: {{ document.content }}
+        {% endfor %}
+    role: user
+    name: null
+

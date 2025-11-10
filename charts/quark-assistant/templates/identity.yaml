@@ -1,0 +1,133 @@
+{{- $fullname := include "quark-assistant.fullname" . -}}
+
+{{- if .Values.identity.enabled }}
+
+---
+apiVersion: identity-manager.io/v1alpha1
+kind: WorkloadIdentity
+metadata:
+  name: {{ $fullname }}
+  labels:
+    gravity.invisibl.io/for-provider: "self"
+spec:
+  name: {{ .Values.global.kube.name }}-{{ $fullname }}
+  description: "Identity for {{ $fullname }} (kube: {{ .Values.global.kube.name }})"
+  provider: {{ .Values.identity.provider }}
+  {{- if eq "Azure" .Values.identity.provider }}
+  azure:
+    roleAssignments:
+      owner:
+        role: Owner
+    identityBinding:
+      spec:
+        selector: {{ .Values.identity.azure.selector }}
+  {{- end }}
+  {{- if eq "AWS" .Values.identity.provider }}
+  aws:
+    path: "/"
+    maxSessionDuration: 3600
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:aws:iam::{{ .Values.global.infra.id }}:oidc-provider/oidc.eks.{{ .Values.global.infra.region }}.amazonaws.com/id/{{ .Values.global.kube.props.oidc_id }}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "oidc.eks.{{ .Values.global.infra.region }}.amazonaws.com/id/{{ .Values.global.kube.props.oidc_id }}:sub": "system:serviceaccount:{{ .Release.Namespace }}:{{ $fullname }}"
+              }
+            }
+          }
+        ]
+      }
+    inlinePolicies:
+      {{- if .Values.identity.config.s3Buckets }}
+      s3bucket: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:List*",
+                "s3:Get*",
+                "s3:Put*"
+              ],
+              "Resource": [
+                {{- $last := sub (len .Values.identity.config.s3Buckets) 1 }}
+                {{- range $index,$bucket := .Values.identity.config.s3Buckets }}
+                "arn:aws:s3:::{{ $bucket.bucketName }}",
+                "arn:aws:s3:::{{ $bucket.bucketName }}{{ $bucket.bucketPrefix }}*"{{ if ne $index $last }},{{ end }}
+                {{- end}}
+              ]
+            }
+          ]
+        }
+      {{- end }}
+      {{- if .Values.identity.config.opensearchDomain }}
+      opensearchDomain: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Action": [
+              "es:ESHttpGet",
+              "es:ESHttpDelete",
+              "es:ESHttpPost",
+              "es:ESHttpPatch",
+              "es:ESHttpHead",
+              "es:ESHttpPut"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:es:{{ .Values.global.infra.region }}:{{ .Values.global.infra.id }}:domain/{{ .Values.identity.config.opensearchDomain }}/*"
+          }]
+        }
+      {{- end }}
+      bedrock: |
+        {
+            "Version": "2012-10-17",
+            "Statement": {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": "arn:aws:iam::{{ .Values.identity.config.crossAccount.id }}:role/{{ .Values.identity.config.crossAccount.role }}"
+            }
+        }
+      {{- if .Values.identity.config.neptuneDB }}
+      neptuneDB: |
+        {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "neptune-db:DeleteDataViaQuery",
+                    "neptune-db:GetGraphSummary",
+                    "neptune-db:ReadDataViaQuery",
+                    "neptune-db:WriteDataViaQuery",
+                    "neptune-db:List*",
+                    "neptune-db:GetEngineStatus",
+                    "neptune-db:GetQueryStatus",
+                    "neptune-db:GetStreamRecords",
+                    "neptune-db:CancelQuery",
+                    "neptune-db:GetStatisticsStatus"
+                ],
+                "Resource": "arn:aws:neptune-db:{{ .Values.global.infra.region }}:{{ .Values.global.infra.id }}:{{ .Values.identity.config.neptuneDB }}/*"
+            }
+          ]
+        }
+      {{end}}
+      {{- if .Values.identity.config.customPolicy }}
+      customPolicy: |
+        {{- toJson .Values.identity.config.customPolicy }}
+      {{- end }}
+    serviceAccounts:
+      - action: Update
+        name: {{ include "quark-assistant.serviceAccountName" . }}
+    pods:
+      - matchLabels:
+          {{- include "quark-assistant.selectorLabels" . | nindent 10 }}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,67 @@
+{{- if and .Values.config.expose .Values.config.authEnabled (eq "Istio" .Values.global.mesh.provider) }}
+---
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: {{ include "quark-assistant.fullname" . }}
+  labels:
+    {{- include "quark-assistant.selectorLabels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "quark-assistant.selectorLabels" . | nindent 6 }}
+  url: {{ default .Values.global.images.wasmauthproxy.uri .Values.gateway.wasm.url }}
+  imagePullPolicy: {{ default "IfNotPresent" .Values.gateway.wasm.imagePullPolicy }}
+  phase: {{ default "AUTHN" .Values.gateway.wasm.phase }}
+  failStrategy: {{ default "FAIL_CLOSE" .Values.gateway.wasm.failStrategy }}
+  type: {{ default "HTTP" .Values.gateway.wasm.pluginType }}
+  match:
+    - mode: SERVER
+  {{- if .Values.gateway.wasm.pluginConfig }}
+  pluginConfig:
+    {{- toYaml .Values.gateway.wasm.pluginConfig | nindent 4 }}
+  {{- else }}
+  pluginConfig:
+    {{- if .Values.global.loadBalancer.gateway.debug }}
+    debug: true
+    {{- end }}
+    rules:
+      {{- if and .Values.global.devOptions .Values.global.devOptions.localdevUserIDs }}
+      - name: whitelist
+        matches:
+          - type: header
+            op: has
+            value: gravity-userid
+          - type: header
+            op: has
+            value: gravity-localdev
+        action: whitelist
+        config:
+          headers:
+            gravity-userid:
+              {{- range .Values.global.devOptions.localdevUserIDs }}
+              - {{ . }}
+              {{- end }}
+      {{- end }}
+      - name: ext_authz
+        match:
+          type: path
+          op: prefix
+          value: {{ .Values.config.subpath }}/
+        action: ext_authz
+        config:
+          redirect_path: {{ .Values.config.subpath }}/
+          request_allowed_headers:
+          - exact: authorization
+          - exact: cookie
+          - exact: x-auth-token
+          response_allowed_headers:
+          - prefix: {{ .Values.authHeaderPrefix }}
+          server:
+            cluster: outbound|{{ default 8080 .Values.global.idp.simpleAuth.port }}||{{ .Values.global.idp.simpleAuth.host }}
+            timeout: 10s
+      {{- if .Values.gateway.wasm.extraRules }}
+      {{- toYaml .Values.gateway.wasm.extraRules | nindent 6 }}
+      {{- end }}
+  {{- end }}
+{{- end }}

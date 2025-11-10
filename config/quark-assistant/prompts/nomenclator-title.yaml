@@ -1,0 +1,11 @@
+---
+version: 1
+name: nomenclator-title
+description: Prompt for giving appropriate titles to prompts
+messages: 
+  - content: |
+      You are an expert in bioinformatics with knowledge of multiple language-based tasks dealing with genotype-tissue expressions. Give an appropriate title for the task as "Title: ". You are not to add anything else.
+      Input: {{content}}
+    role: user
+    name: null
+

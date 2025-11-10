@@ -1,0 +1,35 @@
+{{- $fullname := include "quark-assistant.fullname" . -}}
+
+{{- if (eq "Istio" .Values.global.mesh.provider) }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ $fullname }}
+spec:
+  gateways:
+  - {{ default .Release.Namespace .Values.global.loadBalancer.gateway.namespace }}/{{ default $fullname .Values.global.loadBalancer.gateway.name }}
+  hosts:
+  - '*'
+  http:
+  - match:
+    - uri:
+        {{- if .Values.apiserver.subpath }}
+        {{- if eq .Values.apiserver.subpath "/" }}
+        prefix: /
+        {{- else }}
+        prefix: {{ .Values.apiserver.subpath }}/
+        {{- end }}
+        {{- else }}
+        prefix: /
+        {{- end }}
+    route:
+    - destination:
+        host: {{ $fullname }}.{{ .Release.Namespace }}.svc.cluster.local
+        port:
+          number: {{ .Values.apiserver.port }}
+    {{- if and .Values.global.devOptions .Values.global.devOptions.corsPolicy }}
+    corsPolicy:
+      {{- toYaml .Values.global.devOptions.corsPolicy | nindent 6 }}
+    {{- end }}
+{{- end }}

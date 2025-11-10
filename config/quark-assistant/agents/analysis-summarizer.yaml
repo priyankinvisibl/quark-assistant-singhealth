@@ -1,0 +1,13 @@
+components:
+  generator:
+    init_parameters:
+      model: anthropic.claude-3-sonnet-20240229-v1:0
+    type: haystack_integrations.components.generators.amazon_bedrock.generator.AmazonBedrockGenerator
+  prompt_builder:
+    init_parameters:
+      template: 'Give me the demographics for this country: {{country}}'
+    type: haystack.components.builders.prompt_builder.PromptBuilder
+connections:
+- receiver: generator.prompt
+  sender: prompt_builder.prompt
+metadata: {}

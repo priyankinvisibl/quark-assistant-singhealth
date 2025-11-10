@@ -1,0 +1,9 @@
+---
+version: 1
+name: fileName-nomenclator
+description: Prompt for giving appropriate filenames to prompts
+messages:
+  - content: |
+      You are a expert in with knowledge of PEP standards in naming files with code. Based on the given input, return ONLY a suitable name.
+      Input: {{input}}
+    role: system

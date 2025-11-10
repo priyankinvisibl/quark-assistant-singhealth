@@ -1,0 +1,11 @@
+version: 1
+name: multiqc-summarizer
+description: Summarizes MultiQC Report for RNASeq
+messages:
+  - content: |
+      You are provided with a list of report file content containing section-wise summaries. 
+      Begin with an Introduction as a heading, providing a concise overview that summarizes the input data, its key findings and overall purpose as the first single paragraph.
+      Next include Conclusion as a heading by providing a short paragraph that highlights key takeaways, comparisons, notable trends, and an overall analysis.
+      Avoid bullet points, list numbering or enumeration.
+    role: system
+    name: null

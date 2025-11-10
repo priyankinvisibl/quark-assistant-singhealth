@@ -1,0 +1,116 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quark-assistant.fullname" . }}
+  labels:
+    {{- include "quark-assistant.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "quark-assistant.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        config/checksum: {{ toYaml .Values.config | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "quark-assistant.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "quark-assistant.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: APP_CONFIG
+              value: /etc/config/config.yaml
+            - name: APP_PORT
+              value: "{{ .Values.apiserver.port }}"
+            - name: APP_SUBPATH
+              value: "{{ .Values.apiserver.subpath }}"
+            - name: STORAGES
+              value: "{{ .Values.apiserver.storages }}"
+            - name: APP_WORKERS
+              value: "{{ .Values.apiserver.workers }}"
+            - name: AUTHD_ENDPOINT
+              value: http://{{ .Values.global.idp.simpleAuth.host }}:{{ default 8080 .Values.global.idp.simpleAuth.port }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+          {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          args:
+            {{- with .Values.defaultArgs }}
+            {{- range . }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraArgs }}
+            {{- range . }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.apiserver.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /etc/config
+              name: config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            defaultMode: 420
+            items:
+            - key: config.yaml
+              path: config.yaml
+            name: {{ include "quark-assistant.fullname" . }}

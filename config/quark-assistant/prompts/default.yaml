@@ -1,0 +1,9 @@
+---
+version: 1
+name: default
+description: Default prompt
+messages:
+  - content: |
+      Input: {{input}}
+    role: system
+    name: null

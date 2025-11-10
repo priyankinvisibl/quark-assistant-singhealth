@@ -1,0 +1,10 @@
+---
+version: 1
+name: enrichment-summarizer
+description: Summarizes filtered enrichment analysis CSV file
+messages:
+  - content: |
+      Top 10 upregulated genes based on the highest Log2Fold change and P-value < 0.05 are MUC16, ... . These genes are associated with schizophrenia and neuromuscular disorder [add ref if possible].
+      Top 10 downregulated genes based on the highest Log2Fold change and P-value < 0.05 are BRCA1, ... . These genes are associated with neuromuscular disorder [add ref if possible].
+    role: system
+    name: null
