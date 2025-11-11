@@ -59,11 +59,8 @@ agents:
 
 models:
   aws: 
-    name: "anthropic.claude-3-5-sonnet-20240620-v1:0"
-    values:
-      guardrailConfig:
-        guardrailIdentifier: kyf9ptn7y52u
-        guardrailVersion: DRAFT
+    name: "apac.amazon.nova-micro-v1:0"
+    values: {}
   azure: 
     name: azure-gpt-v3.5turbo
     values:

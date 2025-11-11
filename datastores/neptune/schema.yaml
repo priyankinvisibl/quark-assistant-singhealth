@@ -1,5 +1,6 @@
 nodes:
-  - type: Genes
+  # Core Biological Entities
+  - type: Gene
     synonyms:
       - GeneEntity
       - GeneticElement
@@ -8,484 +9,928 @@ nodes:
       Represents a gene, which is a sequence of DNA that contains the
       information to produce a functional product, typically a protein.
     labels:
-      - BiologicalEntity
-      - Entity
       - Gene
-      - NamedThing
     properties:
+      - id(string): Gene identifier
+      - name(string): Gene name
       - ensembl_id(string): Ensembl ID
-      - id(string): null
-      - preferred_id(string): null
-      - ensembl_id(string)
-      - name(string)
-      - gene_id(string)
-      - gene_claim_name(string)
-      - gene_claim_source(string)
-      - entrez_id(string)
-      - symbol(string)
+      - entrez_id(int): Entrez Gene ID
+      - civic_feature_id(string): CIViC feature ID
+      - gene_name(string): Gene name from DGIdb
+      - gene_claim_name(string): Gene claim name
+      - concept_id(string): Concept ID
+      - nomenclature(string): Nomenclature
+      - source(string): Source database
+      - data_source(string): Data source
+      - preferred_id(string): Preferred identifier
     outgoing_edges:
-      - label: MaterialSampleToEntityAssociation
+      - label: Gene_protein_association
         target_vertex_labels:
-          - MaterialSample
+          - Protein
+      - label: Gene_pathway_association
+        target_vertex_labels:
+          - Pathway
+      - label: GeneToDiseaseAssociation
+        target_vertex_labels:
+          - Disease
+      - label: GeneToPhenotypicFeatureAssociation
+        target_vertex_labels:
+          - PhenotypicFeature
+      - label: HasFeature
+        target_vertex_labels:
+          - Feature
     incoming_edges:
-      - label: MacromolecularMachineToCellularComponentAssociation
-        source_vertex_labels:
-          - CellularComponent
-      - label: DrugToGeneAssociation
+      - label: DRUG_GENE_INTERACTION
         source_vertex_labels:
           - Drug
-      - label: MacromolecularMachineToMolecularActivityAssociation
-        source_vertex_labels:
-          - BiologicalProcess
       - label: PathwayGeneInteraction
         source_vertex_labels:
           - Pathway
-  - type: tissue sample/sample
+      - label: MacromolecularMachineToMolecularActivityAssociation
+        source_vertex_labels:
+          - BiologicalProcess
+
+  - type: Protein
     synonyms:
-      - BiologicalSample
-      - TissueSpecimen
-      - MaterialSample
+      - ProteinEntity
+      - Polypeptide
     description: >-
-      Represents a physical sample of biological tissue collected for analysis
-      or research.
+      Represents a protein molecule encoded by genes.
     labels:
-      - Entity
-      - MaterialSample
-      - NamedThing
-      - PhysicalEntity
+      - Protein
     properties:
-      - SMATSSCR(string): Autolysis Score
-      - SMCENTER(string): Code for BSS collection site
-      - SMPTHNTS(string): 'Pathology Notes, notes from PRC Report'
-      - SMRIN(string): RIN Number
-      - SMTS(string): >-
-          Tissue Type, area from which the tissue sample was taken. This is a
-          parent value to SMTSD.
-      - SMTSD(string): 'Tissue Type, more specific detail of tissue type'
-      - SMUBRID(string): >-
-          Uberon ID, anatomical location as described by the Uber Anatomy
-          Ontology (UBERON)
-      - SMTSISCH(double): Total Ischemic time for a sample
-      - SMTSPAX(string): Time a sample spent in the PAXgene fixative
-      - SMNABTCH(string): Nucleic Acid Isolation Batch ID
-      - SMNABTCHT(string): Type of nucleic acid isolation batch
-      - SMNABTCHD(string): Date of nucleic acid isolation batch
-      - SMGEBTCH(string): Genotype or Expression Batch ID
-      - SMGEBTCHD(string): Date of genotype or expression batch
-      - SMGEBTCHT(string): Type of genotype or expression batch
-      - SMAFRZE(string): Samples included in the GTEx Analysis Freeze
-      - SMGTC(string): Name of the genotype gtc file
-      - SME2MPRT(string): >-
-          End 2 Mapping Rate: Proportion of End 2 Mapped Reads to Unique
-          Mapping, Vendor QC Passed Reads
-      - SMCHMPRS(string): 'Chimeric Pairs: Pairs whose mates map to different genes'
-      - SMNTRART(string): 'Intragenic Rate: Proportion of Intragenic Reads among Mapped Reads'
-      - SMNUMGPS(string): 'Number of Gaps: Number of regions with ≥5 bases with zero coverage'
-      - SMMAPRT(string): 'Mapping Rate: Proportion of Mapped Reads to Total Reads'
-      - SMEXNCRT(string): 'Exonic Rate: Proportion of Exonic Reads among Mapped Reads'
-      - SM550NRM(string): >-
-          5' 50-based normalization:  50 (this number is the value for the
-          transcript end length parameter) refers to the definition of how many
-          bases are considered at the end; this value is the ratio between the
-          coverage at the 5' end and the average coverage of the full
-          transcript, averaged over all transcripts; 
-      - SMGNSDTC(string): >-
-          Genes Detected: Number of genes with at least 5 (default) High Quality
-          Exonic Reads (--detection-threshold option)
-      - SMUNMPRT(string): >-
-          Unique Rate of Mapped: Proportion of Mapped Unique Reads to Mapped
-          Reads
-      - SM350NRM(string): >-
-          3' 50-base normalization: the ratio between the coverage at the 3' end
-          and the average coverage of the full transcript, averaged over all
-          transcripts
-      - SMRDLGTH(string): 'Read Length: Longest aligned length'
-      - SMMNCPB(string): >-
-          Mean Coverage Per Base: Coverage is averaged per base across each
-          transcript, and averaged again across all transcripts.
-      - SME1MMRT(string): 'End 1 Mismatch Rate: End 1 Mismatches divided by End 1 Bases'
-      - SMSFLGTH(string): 'Fragment Length Std: Standard deviation of insert size'
-      - SMESTLBS(string): >-
-          Estimated Library Complexity: Estimated number of unique cDNA
-          fragments in the library, based on Mapped Reads. The computation is
-          identical to Picard's EstimateLibraryComplexity
-      - SMMPPD(string): 'Mapped Reads: Unique Mapping, Vendor QC Passed Reads that were mapped'
-      - SMNTERRT(string): 'Intergenic Rate: Proportion of Intergenic Reads among Mapped Reads'
-      - SMRRNANM(string): >-
-          rRNA: Number of all reads (duplicate and non-duplicate) aligning to
-          ribosomal RNA regions
-      - SMRDTTL(string): 'Total Reads: Total input reads'
-      - SMVQCFL(string): >-
-          Failed Vendor QC: Reads (unique) that failed platform/vendor QC (0x200
-          flag)
-      - SMMNCV(string): 'Mean Coverage: Mean read coverage'
-      - SMTRSCPT(string): >-
-          Transcripts Detected: Total number of transcripts with at least 5 exon
-          mapping reads
-      - SMMPPDPR(string): >-
-          Total Mapped Pairs: Mapped Reads pairs that were mapped as proper
-          pairs
-      - SMCGLGTH(string): 'Cumulative Gap Length: Cumulative length of gap regions'
-      - SMGAPPCT(string): >-
-          Gap Percentage: The total cumulative gap length divided by the total
-          cumulative transcript lengths
-      - SMUNPDRD(string): >-
-          Unpaired Reads: Unique Mapping, Vendor QC Passed Reads that were
-          unpaired
-      - SMNTRNRT(string): 'Intronic Rate: Proportion of Intronic Reads among Mapped Reads'
-      - SMMPUNRT(string): >-
-          Mapped Unique Rate of Total: Ratio of mapping of reads that were
-          aligned and were not duplicates to total reads
-      - SMEXPEFF(string): >-
-          Expression Profiling Efficiency: Proportion of Exonic Reads among
-          Unique Mapping, Vendor QC Passed Reads
-      - SMMPPDUN(string): 'Mapped Unique Reads: Mapped Reads that were not duplicates'
-      - SME2MMRT(string): 'End 2 Mismatch Rate: End 2 Mismatches divided by End 2 Bases'
-      - SME2ANTI(string): >-
-          End 2 Antisense: End 2 Mapped Reads that intersected with a anti-sense
-          (-) strand feature
-      - SMALTALG(string): >-
-          Alternative Alignments: Reads that were mapped as secondary alignments
-          (0x100 flag)
-      - SME2SNSE(string): >-
-          End 2 Sense: End 2 Mapped Reads that intersected with a sense (+)
-          strand feature
-      - SMMFLGTH(string): 'Average Fragment Length: Mean insert size'
-      - SME1ANTI(string): >-
-          End 1 Antisense: End 1 Mapped Reads that intersected with a anti-sense
-          (-) strand feature
-      - SMSPLTRD(string): 'Split Reads: The number of reads that span an exon-exon boundary'
-      - SMBSMMRT(string): 'Base Mismatch Rate: Mismatched Bases divided by Total Bases'
-      - SME1SNSE(string): >-
-          End 1 Sense: End 1 Mapped Reads that intersected with a sense (+)
-          strand feature
-      - SME1PCTS(string): >-
-          End 1 Sense Rate: Proportion of End 1 Sense reads among End 1 Sense
-          and End 1 Antisense reads
-      - SMRRNART(string): 'rRNA Rate: Proportion of rRNA Reads among Mapped Reads'
-      - SME1MPRT(string): >-
-          End 1 Mapping Rate: Proportion of End 1 Mapped Reads to Unique
-          Mapping, Vendor QC Passed Reads
-      - SMNUM5CD(string): >-
-          Number Covered 5': The number of transcripts that have at least one
-          read in their 5' end
-      - SMDPMPRT(string): >-
-          Duplicate Rate of Mapped: Proportion of Mapped Duplicate Reads to
-          Mapped Reads. Complementary to Unique Rate of Mapped
-      - SME2PCTS(string): >-
-          End 2 Sense Rate: Proportion of End 2 Sense reads among End 2 Sense
-          and End 2 Antisense reads
-      - id(string): null
-      - preferred_id(string): null
+      - id(string): Protein identifier
+      - name(string): Protein name
+      - uniprot_id(string): UniProt ID
+      - source(string): Source database
+      - preferred_id(string): Preferred identifier
     outgoing_edges:
-      - label: CaseToEntityAssociation
+      - label: Protein_pathway_direct_association
         target_vertex_labels:
-          - Case
+          - Pathway
+      - label: Protein_reaction_association
+        target_vertex_labels:
+          - Reaction
+      - label: Protein_pmid_association
+        target_vertex_labels:
+          - Pmid
     incoming_edges:
-      - label: MaterialSampleToEntityAssociation
+      - label: Gene_protein_association
         source_vertex_labels:
           - Gene
-  - type: donor/sample donor
-    synonyms:
-      - Individual
-      - BiologicalDonor
-      - SampleProvider
-    description: >-
-      Represents an individual organism that provides biological samples for
-      research or analysis.
-    labels:
-      - BiologicalEntity
-      - Case
-      - Entity
-      - IndividualOrganism
-      - NamedThing
-      - OrganismalEntity
-    properties:
-      - sex(string): Sex of the donor
-      - AGE(string): Age of the donor
-      - DTHHRDY(string): Death to harvest ready time
-      - id(string): null
-      - preferred_id(string): null
-    outgoing_edges: []
-    incoming_edges:
-      - label: CaseToEntityAssociation
+      - label: Complex_protein_association
         source_vertex_labels:
-          - MaterialSample
-  - type: Biological process
+          - Complex
+
+  - type: Disease
     synonyms:
-      - BiologicalFunction
-      - CellularProcess
-      - MolecularProcess
+      - Disorder
+      - Condition
+      - DiseaseEntity
     description: >-
-      Represents a series of events or molecular functions that are carried out
-      by living organisms to sustain life.
+      Represents a disease or medical condition.
     labels:
-      - BiologicalEntity
-      - Entity
-      - Gene
-      - NamedThing
-      - BiologicalProcess
-      - BiologicalProcessOrActivity
+      - Disease
     properties:
-      - name(string): null
-      - id(string): null
-      - preferred_id(string): null
+      - id(string): Disease identifier
+      - name(string): Disease name
+      - disease_name(string): Disease name from HPO
+      - doid(int): Disease Ontology ID
+      - original_id(string): Original ID from clinical trials
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
     outgoing_edges:
-      - label: PathwayGeneInteraction
+      - label: DiseaseToPhenotypicFeatureAssociation
         target_vertex_labels:
+          - PhenotypicFeature
+    incoming_edges:
+      - label: GeneToDiseaseAssociation
+        source_vertex_labels:
           - Gene
-    incoming_edges: []
-  - type: cellular component
-    synonyms:
-      - CellPart
-      - CellStructure
-      - SubcellularComponent
-    description: >-
-      Represents a specific part or structure within a cell, such as the nucleus
-      or mitochondria.
-    labels:
-      - AnatomicalEntity
-      - BiologicalEntity
-      - CellularComponent
-      - Entity
-      - NamedThing
-      - OrganismalEntity
-    properties:
-      - name(string): null
-      - id(string): null
-      - preferred_id(string): null
-    outgoing_edges:
-      - label: MacromolecularMachineToCellularComponentAssociation
-        target_vertex_labels:
-          - Gene
-    incoming_edges: []
+      - label: PhenotypicFeatureToDiseaseAssociation
+        source_vertex_labels:
+          - PhenotypicFeature
+      - label: StudyToDiseaseAssociation
+        source_vertex_labels:
+          - ClinicalTrial
+      - label: AssociatedWithDisease
+        source_vertex_labels:
+          - Evidence
+      - label: AssertionForDisease
+        source_vertex_labels:
+          - Assertion
+
   - type: Drug
     synonyms:
       - Medication
       - Pharmaceutical
       - ChemicalCompound
+      - Therapy
     description: >-
-      Represents a chemical substance used to treat, cure, or prevent diseases
-      or to enhance physical or mental well-being.
+      Represents a chemical substance used to treat, cure, or prevent diseases.
     labels:
-      - ChemicalEntity
-      - ChemicalMixture
       - Drug
-      - Entity
-      - MolecularMixture
-      - NamedThing
     properties:
-      - id(string): null
-      - preferred_id(string): null
-      - name(string)
-      - concept_id(string)
-      - drug_claim_name(string)
-      - drug_claim_source(string)
-      - drug_claim_primary_name(string)
-      - drug_claim_source_db_version(string)
+      - id(string): Drug identifier
+      - name(string): Drug name
+      - drug_name(string): Drug name from DGIdb
+      - drug_claim_name(string): Drug claim name
+      - concept_id(string): Concept ID
+      - nomenclature(string): Nomenclature
+      - approved(boolean): FDA approved status
+      - immunotherapy(boolean): Immunotherapy flag
+      - anti_neoplastic(boolean): Anti-neoplastic flag
+      - type(string): Drug type (behavioral, procedure, etc.)
+      - description(string): Drug description
+      - mapped_names(string): Mapped names
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
     outgoing_edges:
-      - label: DrugToGeneAssociation
+      - label: DRUG_GENE_INTERACTION
         target_vertex_labels:
           - Gene
-    incoming_edges: []
-  - type: molecular function or activity
+    incoming_edges:
+      - label: StudyToDrugAssociation
+        source_vertex_labels:
+          - ClinicalTrial
+      - label: EvidenceForTherapy
+        source_vertex_labels:
+          - Evidence
+      - label: AssertionForTherapy
+        source_vertex_labels:
+          - Assertion
+
+  - type: Pathway
     synonyms:
-      - MolecularFunction
-      - BiochemicalActivity
-      - EnzymaticFunction
+      - BiologicalPathway
+      - MolecularPathway
+      - ReactomePathway
     description: >-
-      Represents a specific biochemical activity or function performed by a
-      molecule, such as an enzyme or protein.
+      Represents a series of molecular interactions or biological processes.
     labels:
-      - BiologicalEntity
-      - Entity
-      - NamedThing
-      - BiologicalProcess
-      - BiologicalProcessOrActivity
+      - Pathway
     properties:
-      - name(string): null
-      - id(string): null
-      - preferred_id(string): null
+      - id(string): Pathway identifier
+      - name(string): Pathway name
+      - reactome_id(string): Reactome ID
+      - source(string): Source database
+      - data_source(string): Data source
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: PathwayGeneInteraction
+        target_vertex_labels:
+          - Gene
+      - label: Pathway_hierarchy
+        target_vertex_labels:
+          - Pathway
+      - label: Pathway_reaction_association
+        target_vertex_labels:
+          - Reaction
+    incoming_edges:
+      - label: Gene_pathway_association
+        source_vertex_labels:
+          - Gene
+      - label: Protein_pathway_direct_association
+        source_vertex_labels:
+          - Protein
+      - label: Complex_pathway_association
+        source_vertex_labels:
+          - Complex
+
+  - type: PhenotypicFeature
+    synonyms:
+      - Phenotype
+      - ClinicalFeature
+      - ObservableFeature
+    description: >-
+      Represents an observable characteristic or trait of an organism.
+    labels:
+      - PhenotypicFeature
+    properties:
+      - id(string): Phenotype identifier
+      - hpo_name(string): Human Phenotype Ontology name
+      - ncbi_gene_id(int): NCBI Gene ID
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: PhenotypicFeatureToDiseaseAssociation
+        target_vertex_labels:
+          - Disease
+    incoming_edges:
+      - label: GeneToPhenotypicFeatureAssociation
+        source_vertex_labels:
+          - Gene
+      - label: DiseaseToPhenotypicFeatureAssociation
+        source_vertex_labels:
+          - Disease
+
+  # Clinical Entities
+  - type: ClinicalTrial
+    synonyms:
+      - ClinicalStudy
+      - Study
+      - Trial
+    description: >-
+      Represents a clinical research study evaluating medical interventions.
+    labels:
+      - ClinicalTrial
+    properties:
+      - id(string): Trial identifier (NCT number)
+      - brief_title(string): Brief title
+      - official_title(string): Official title
+      - status(string): Study status
+      - brief_summary(string): Brief summary
+      - type(string): Type of study
+      - allocation(string): Allocation method
+      - phases(string): Study phases
+      - model(string): Study model
+      - primary_purpose(string): Primary purpose
+      - number_of_patients(string): Number of patients
+      - eligibility_criteria(string): Eligibility criteria
+      - sex(string): Gender eligibility
+      - minimum_age(string): Minimum age
+      - maximum_age(string): Maximum age
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: StudyToDiseaseAssociation
+        target_vertex_labels:
+          - Disease
+      - label: StudyToDrugAssociation
+        target_vertex_labels:
+          - Drug
+      - label: StudyToLocationAssociation
+        target_vertex_labels:
+          - Location
+      - label: StudyToSponsorAssociation
+        target_vertex_labels:
+          - Sponsor
+      - label: StudyToOutcomeAssociation
+        target_vertex_labels:
+          - Outcome
+    incoming_edges: []
+
+  # CIViC Entities
+  - type: Variant
+    synonyms:
+      - GeneticVariant
+      - Mutation
+      - SNP
+    description: >-
+      Represents a genetic variant or mutation from CIViC.
+    labels:
+      - Variant
+    properties:
+      - id(string): Variant identifier
+      - variant_id(int): CIViC variant ID
+      - name(string): Variant name
+      - feature_type(string): Feature type
+      - feature_id(int): Feature ID
+      - feature_name(string): Feature name
+      - variant(string): Variant description
+      - variant_aliases(string): Variant aliases
+      - variant_groups(string): Variant groups
+      - variant_types(string): Variant types
+      - gene(string): Associated gene
+      - chromosome(string): Chromosome
+      - start(string): Start position
+      - stop(string): Stop position
+      - reference_bases(string): Reference bases
+      - variant_bases(string): Variant bases
+      - civic_url(string): CIViC URL
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: VariantIsPartOfMolecularProfile
+        target_vertex_labels:
+          - MolecularProfile
+    incoming_edges:
+      - label: IncludesVariant
+        source_vertex_labels:
+          - MolecularProfile
+      - label: FeatureIsAssociatedWithVariant
+        source_vertex_labels:
+          - Feature
+
+  - type: Evidence
+    synonyms:
+      - ClinicalEvidence
+      - ScientificEvidence
+    description: >-
+      Represents clinical or scientific evidence from CIViC.
+    labels:
+      - Evidence
+    properties:
+      - id(string): Evidence identifier
+      - evidence_id(int): CIViC evidence ID
+      - name(string): Evidence name
+      - molecular_profile(string): Molecular profile
+      - molecular_profile_id(int): Molecular profile ID
+      - disease(string): Associated disease
+      - doid(string): Disease Ontology ID
+      - evidence_type(string): Evidence type
+      - evidence_direction(string): Evidence direction
+      - evidence_level(string): Evidence level
+      - significance(string): Clinical significance
+      - evidence_statement(string): Evidence statement
+      - citation(string): Citation
+      - evidence_civic_url(string): CIViC evidence URL
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: AssociatedWithDisease
+        target_vertex_labels:
+          - Disease
+      - label: EvidenceForTherapy
+        target_vertex_labels:
+          - Therapy
+      - label: SupportsAssertion
+        target_vertex_labels:
+          - Assertion
+    incoming_edges:
+      - label: EvidenceHasMolecularProfile
+        source_vertex_labels:
+          - MolecularProfile
+
+  - type: Assertion
+    synonyms:
+      - ClinicalAssertion
+      - TherapeuticAssertion
+    description: >-
+      Represents a clinical assertion from CIViC.
+    labels:
+      - Assertion
+    properties:
+      - id(string): Assertion identifier
+      - assertion_id(int): CIViC assertion ID
+      - name(string): Assertion name
+      - assertion_direction(string): Assertion direction
+      - significance(string): Clinical significance
+      - assertion_type(string): Assertion type
+      - molecular_profile(string): Molecular profile
+      - disease(string): Associated disease
+      - therapies(string): Associated therapies
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: AssertionForDisease
+        target_vertex_labels:
+          - Disease
+      - label: AssertionForTherapy
+        target_vertex_labels:
+          - Therapy
+    incoming_edges:
+      - label: SupportsAssertion
+        source_vertex_labels:
+          - Evidence
+
+  - type: Feature
+    synonyms:
+      - GeneFeature
+      - CIViCFeature
+    description: >-
+      Represents a genomic feature from CIViC.
+    labels:
+      - Feature
+    properties:
+      - id(string): Feature identifier
+      - feature_id(int): CIViC feature ID
+      - name(string): Feature name
+      - feature_type(string): Feature type
+      - description(string): Feature description
+      - aliases(string): Feature aliases
+      - entrez_id(string): Entrez ID
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: FeatureIsAssociatedWithVariant
+        target_vertex_labels:
+          - Variant
+    incoming_edges:
+      - label: HasFeature
+        source_vertex_labels:
+          - Gene
+
+  - type: MolecularProfile
+    synonyms:
+      - GeneticProfile
+      - CIViCProfile
+    description: >-
+      Represents a molecular profile from CIViC.
+    labels:
+      - MolecularProfile
+    properties:
+      - id(string): Profile identifier
+      - molecular_profile_id(int): CIViC molecular profile ID
+      - name(string): Profile name
+      - summary(string): Profile summary
+      - variant_ids(string): Associated variant IDs
+      - evidence_score(double): Evidence score
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: IncludesVariant
+        target_vertex_labels:
+          - Variant
+      - label: EvidenceHasMolecularProfile
+        target_vertex_labels:
+          - Evidence
+    incoming_edges:
+      - label: VariantIsPartOfMolecularProfile
+        source_vertex_labels:
+          - Variant
+
+  - type: Therapy
+    synonyms:
+      - Treatment
+      - CIViCTherapy
+    description: >-
+      Represents a therapy from CIViC.
+    labels:
+      - Therapy
+    properties:
+      - id(string): Therapy identifier
+      - name(string): Therapy name
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: EvidenceForTherapy
+        source_vertex_labels:
+          - Evidence
+      - label: AssertionForTherapy
+        source_vertex_labels:
+          - Assertion
+
+  - type: Fusion
+    synonyms:
+      - GeneFusion
+      - CIViCFusion
+    description: >-
+      Represents a gene fusion from CIViC.
+    labels:
+      - Fusion
+    properties:
+      - id(string): Fusion identifier
+      - civic_feature_id(string): CIViC feature ID
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges: []
+
+  - type: Factor
+    synonyms:
+      - CIViCFactor
+    description: >-
+      Represents a factor from CIViC.
+    labels:
+      - Factor
+    properties:
+      - id(string): Factor identifier
+      - civic_feature_id(string): CIViC feature ID
+      - description(string): Factor description
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges: []
+
+  # Additional Entities
+  - type: BiologicalProcess
+    synonyms:
+      - BiologicalFunction
+      - CellularProcess
+      - MolecularProcess
+    description: >-
+      Represents a biological process from Gene Ontology.
+    labels:
+      - BiologicalProcess
+    properties:
+      - id(string): GO identifier
+      - name(string): Process name
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
     outgoing_edges:
       - label: MacromolecularMachineToMolecularActivityAssociation
         target_vertex_labels:
           - Gene
     incoming_edges: []
-  - type: Reactome or Wiki pathway
+
+  - type: MolecularActivity
     synonyms:
-      - Pathway
-      - BiologicalPathway
-      - MolecularPathway
+      - MolecularFunction
+      - BiochemicalActivity
     description: >-
-      Represents a series of molecular interactions or biological processes that
-      lead to a specific biological outcome.
+      Represents a molecular activity from Gene Ontology.
     labels:
-      - BiologicalEntity
-      - BiologicalProcess
-      - BiologicalProcessOrActivity
-      - Entity
-      - NamedThing
-      - Pathway
+      - MolecularActivity
     properties:
-      - name(string): null
-      - id(string): null
-      - preferred_id(string): null
-    outgoing_edges:
-      - label: PathwayGeneInteraction
-        target_vertex_labels:
-          - Gene
+      - id(string): GO identifier
+      - name(string): Activity name
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
     incoming_edges: []
-  - type: Clinical trial
-    synonyms: [ClinicalStudy, ClinicalEntity, Study]
-    description: Clinical research studies evaluating medical interventions.
-    labels: [ClinicalEntity, Entity, NamedThing]
-    properties:
-      - id(string): Trial ID (e.g., NCT number)
-      - brief_title(string)
-      - official_title(string)
-      - status(string)
-      - brief_summary(string)
-      - type(string)
-      - allocation(string)
-      - phases(string)
-      - model(string)
-      - primary_purpose(string)
-      - number_of_patients(int)
-      - eligibility_criteria(string)
-      - healthy_volunteers(boolean)
-      - sex(string)
-      - minimum_age(string)
-      - maximum_age(string)
-      - standardised_ages(string)
-      - preferred_id(string): null
 
-  - type: Disease or Phenotypic Feature
-    synonyms: [Disease, Disorder, Condition]
-    labels: [BiologicalEntity, Disease, DiseaseOrPhenotypicFeature, NamedThing]
+  - type: Complex
+    synonyms:
+      - ProteinComplex
+      - MacromolecularComplex
+    description: >-
+      Represents a protein complex from Reactome.
+    labels:
+      - Complex
     properties:
-      - keywords(string)
-      - id(string)
-      - preferred_id(string)
-  - type: Sponsor
-    synonyms: [FundingOrganization]
-    labels: [AdministrativeEntity, Entity, NamedThing, Sponsor]
+      - id(string): Complex identifier
+      - source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges:
+      - label: Complex_protein_association
+        target_vertex_labels:
+          - Protein
+      - label: Complex_pathway_association
+        target_vertex_labels:
+          - Pathway
+      - label: Complex_top_level_pathway_association
+        target_vertex_labels:
+          - Pathway
+    incoming_edges: []
+
+  - type: Reaction
+    synonyms:
+      - BiochemicalReaction
+      - ReactomeReaction
+    description: >-
+      Represents a biochemical reaction from Reactome.
+    labels:
+      - Reaction
     properties:
-      - class(string)
-      - id(string)
-      - preferred_id(string)
+      - id(string): Reaction identifier
+      - name(string): Reaction name
+      - reactome_id(string): Reactome ID
+      - source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: Protein_reaction_association
+        source_vertex_labels:
+          - Protein
+      - label: Pathway_reaction_association
+        source_vertex_labels:
+          - Pathway
+
+  - type: Pmid
+    synonyms:
+      - Publication
+      - PubMedID
+    description: >-
+      Represents a PubMed publication.
+    labels:
+      - Pmid
+    properties:
+      - id(string): PMID identifier
+      - pmid(string): PubMed ID
+      - source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: Protein_pmid_association
+        source_vertex_labels:
+          - Protein
+      - label: Reaction_pmid_association
+        source_vertex_labels:
+          - Reaction
+
+  - type: Gene_category
+    synonyms:
+      - GeneCategory
+      - DGIdbCategory
+    description: >-
+      Represents a gene category from DGIdb.
+    labels:
+      - Gene_category
+    properties:
+      - id(string): Category identifier
+      - name(string): Category name
+      - source_db_name(string): Source database name
+      - source_db_version(string): Source database version
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: BELONGS_TO_CATEGORY
+        source_vertex_labels:
+          - Gene
+
+  # Supporting Entities
   - type: Location
-    labels: [Entity, NamedThing, Location]
+    synonyms:
+      - GeographicLocation
+      - Site
+    description: >-
+      Represents a geographic location for clinical trials.
+    labels:
+      - Location
     properties:
-      - country(string)
-      - state(string)
-      - city(string)
-      - id(string)
-      - preferred_id(string)
-  - type: Outcome
-    labels: [ClinicalEntity, Entity, NamedThing, Outcome]
-    properties:
-      - primary(boolean)
-      - description(string)
-      - timeframe(string)
-      - id(string)
-      - preferred_id(string)
-  - type: Category
-    labels: [Category, NamedThing]
-    properties:
-      - source_db(string)
-      - source_db_version(string)
+      - id(string): Location identifier
+      - country(string): Country
+      - state(string): State/Province
+      - city(string): City
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: StudyToLocationAssociation
+        source_vertex_labels:
+          - ClinicalTrial
 
+  - type: Sponsor
+    synonyms:
+      - FundingOrganization
+      - Organization
+    description: >-
+      Represents an organization sponsoring clinical trials.
+    labels:
+      - Sponsor
+    properties:
+      - id(string): Sponsor identifier
+      - class(string): Sponsor class
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: StudyToSponsorAssociation
+        source_vertex_labels:
+          - ClinicalTrial
+
+  - type: Outcome
+    synonyms:
+      - StudyOutcome
+      - Endpoint
+    description: >-
+      Represents a study outcome or endpoint.
+    labels:
+      - Outcome
+    properties:
+      - id(string): Outcome identifier
+      - description(string): Outcome description
+      - time_frame(string): Timeframe
+      - data_source(string): Source database
+      - preferred_id(string): Preferred identifier
+    outgoing_edges: []
+    incoming_edges:
+      - label: StudyToOutcomeAssociation
+        source_vertex_labels:
+          - ClinicalTrial
 
 edges:
-  - label: CaseToEntityAssociation
-    properties: []
-    from:
-      vertex_label: MaterialSample
-    to:
-      vertex_label: Case
-    direction: MaterialSample ➝ Case
-  - label: MaterialSampleToEntityAssociation
+  # Gene-related edges
+  - label: DRUG_GENE_INTERACTION
     properties:
-      - weight
-      - read-counts
-    from:
-      vertex_label: Gene
-    to:
-      vertex_label: MaterialSample
-    direction: Gene ➝ MaterialSample
-  - label: PathwayGeneInteraction
-    properties: []
-    from:
-      vertex_label: Pathway
-    to:
-      vertex_label: Gene
-    direction: Pathway ➝ Gene
-  - label: MacromolecularMachineToCellularComponentAssociation
-    properties: []
-    from:
-      vertex_label: CellularComponent
-    to:
-      vertex_label: Gene
-    direction: CellularComponent ➝ Gene
-  - label: DrugToGeneAssociation
-    properties:
-      - score(string)
-      - source(string)
-      - interaction_claim_source(string)
-      - interaction_type(string)
-      - clinical_association(boolean)
+      - interaction_type(string): Type of interaction
+      - interaction_score(double): Interaction score
+      - data_source(string): Source database
     from:
       vertex_label: Drug
     to:
       vertex_label: Gene
     direction: Drug ➝ Gene
+
+  - label: GeneToDiseaseAssociation
+    properties:
+      - association_type(string): Type of association (e.g., MENDELIAN)
+      - source(string): Source of association
+      - data_source(string): Source database
+    from:
+      vertex_label: Gene
+    to:
+      vertex_label: Disease
+    direction: Gene ➝ Disease
+
+  - label: GeneToPhenotypicFeatureAssociation
+    properties:
+      - via_disease(string): Disease mediating the association
+      - data_source(string): Source database
+    from:
+      vertex_label: Gene
+    to:
+      vertex_label: PhenotypicFeature
+    direction: Gene ➝ PhenotypicFeature
+
+  - label: Gene_pathway_association
+    properties:
+      - source(string): Source database
+    from:
+      vertex_label: Gene
+    to:
+      vertex_label: Pathway
+    direction: Gene ➝ Pathway
+
+  - label: Gene_protein_association
+    properties:
+      - source(string): Source database
+    from:
+      vertex_label: Gene
+    to:
+      vertex_label: Protein
+    direction: Gene ➝ Protein
+
+  - label: HasFeature
+    properties:
+      - relationship_type(string): Type of relationship
+      - data_source(string): Source database
+    from:
+      vertex_label: Gene
+    to:
+      vertex_label: Feature
+    direction: Gene ➝ Feature
+
+  # Pathway-related edges
+  - label: PathwayGeneInteraction
+    properties:
+      - pathway_name(string): Name of pathway
+      - data_source(string): Source database
+    from:
+      vertex_label: Pathway
+    to:
+      vertex_label: Gene
+    direction: Pathway ➝ Gene
+
+  - label: Pathway_hierarchy
+    properties:
+      - source(string): Source database
+    from:
+      vertex_label: Pathway
+    to:
+      vertex_label: Pathway
+    direction: Pathway ➝ Pathway
+
+  # Clinical trial edges
+  - label: StudyToDiseaseAssociation
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: ClinicalTrial
+    to:
+      vertex_label: Disease
+    direction: ClinicalTrial ➝ Disease
+
+  - label: StudyToDrugAssociation
+    properties:
+      - description(string): Drug description in study
+      - dose(string): Drug dosage
+      - data_source(string): Source database
+    from:
+      vertex_label: ClinicalTrial
+    to:
+      vertex_label: Drug
+    direction: ClinicalTrial ➝ Drug
+
+  - label: StudyToLocationAssociation
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: ClinicalTrial
+    to:
+      vertex_label: Location
+    direction: ClinicalTrial ➝ Location
+
+  - label: StudyToSponsorAssociation
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: ClinicalTrial
+    to:
+      vertex_label: Sponsor
+    direction: ClinicalTrial ➝ Sponsor
+
+  - label: StudyToOutcomeAssociation
+    properties:
+      - description(string): Outcome description
+      - time_frame(string): Outcome timeframe
+      - data_source(string): Source database
+    from:
+      vertex_label: ClinicalTrial
+    to:
+      vertex_label: Outcome
+    direction: ClinicalTrial ➝ Outcome
+
+  # Disease-phenotype edges
+  - label: DiseaseToPhenotypicFeatureAssociation
+    properties:
+      - evidence(string): Evidence for association
+      - frequency(string): Frequency of phenotype
+      - onset(string): Age of onset
+      - reference(string): Reference
+      - sex(string): Sex specificity
+      - data_source(string): Source database
+    from:
+      vertex_label: Disease
+    to:
+      vertex_label: PhenotypicFeature
+    direction: Disease ➝ PhenotypicFeature
+
+  - label: PhenotypicFeatureToDiseaseAssociation
+    properties:
+      - via_gene(string): Gene mediating the association
+      - data_source(string): Source database
+    from:
+      vertex_label: PhenotypicFeature
+    to:
+      vertex_label: Disease
+    direction: PhenotypicFeature ➝ Disease
+
+  # Protein-related edges
+  - label: Protein_pathway_direct_association
+    properties:
+      - source(string): Source database
+    from:
+      vertex_label: Protein
+    to:
+      vertex_label: Pathway
+    direction: Protein ➝ Pathway
+
+  - label: Complex_protein_association
+    properties:
+      - participating_complex(string): Complex identifier
+      - pmids(string): PubMed IDs
+    from:
+      vertex_label: Complex
+    to:
+      vertex_label: Protein
+    direction: Complex ➝ Protein
+
+  - label: Complex_pathway_association
+    properties:
+      - source(string): Source database
+    from:
+      vertex_label: Complex
+    to:
+      vertex_label: Pathway
+    direction: Complex ➝ Pathway
+
+  # Biological process edges
   - label: MacromolecularMachineToMolecularActivityAssociation
-    properties: []
+    properties:
+      - function_name(string): Function name
+      - data_source(string): Source database
     from:
       vertex_label: BiologicalProcess
     to:
       vertex_label: Gene
     direction: BiologicalProcess ➝ Gene
 
-  - label: StudyToDiseaseAssociation
-    from:
-      vertex_label: ClinicalEntity
-    to:
-      vertex_label: DiseaseOrPhenotypicFeature
-    properties: []
-    direction: ClinicalEntity ➝ Disease
-
-  - label: StudyToDrugAssociation
-    from:
-      vertex_label: ClinicalEntity
-    to:
-      vertex_label: Drug
+  # CIViC-specific edges
+  - label: AssociatedWithDisease
     properties:
-      - description(string)
-      - dose(string)
-      - run_in_period(string)
-    direction: ClinicalEntity ➝ Drug
-
-  - label: StudyToLocationAssociation
+      - data_source(string): Source database
     from:
-      vertex_label: ClinicalEntity
+      vertex_label: Evidence
     to:
-      vertex_label: Location
-    properties: []
-    direction: ClinicalEntity ➝ Location
+      vertex_label: Disease
+    direction: Evidence ➝ Disease
 
-  - label: StudyToSponsorAssociation
+  - label: EvidenceForTherapy
+    properties:
+      - data_source(string): Source database
     from:
-      vertex_label: ClinicalEntity
+      vertex_label: Evidence
     to:
-      vertex_label: Sponsor
-    properties: []
-    direction: ClinicalEntity ➝ Sponsor
+      vertex_label: Therapy
+    direction: Evidence ➝ Therapy
 
-  - label: GeneHasCategory
+  - label: SupportsAssertion
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: Evidence
+    to:
+      vertex_label: Assertion
+    direction: Evidence ➝ Assertion
+
+  - label: AssertionForDisease
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: Assertion
+    to:
+      vertex_label: Disease
+    direction: Assertion ➝ Disease
+
+  - label: AssertionForTherapy
+    properties:
+      - data_source(string): Source database
+    from:
+      vertex_label: Assertion
+    to:
+      vertex_label: Therapy
+    direction: Assertion ➝ Therapy
+
+  # Gene category edges
+  - label: BELONGS_TO_CATEGORY
+    properties:
+      - data_source(string): Source database
     from:
       vertex_label: Gene
     to:
-      vertex_label: Category
-    properties: []
-    direction: Gene ➝ Category
+      vertex_label: Gene_category
+    direction: Gene ➝ Gene_category

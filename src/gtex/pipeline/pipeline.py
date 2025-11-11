@@ -87,6 +87,7 @@ class QueryEnhancerPipeline:
         # Use cross-account permissions if needed.
         client_kwargs = {
             "service_name": "bedrock-runtime",
+            "region_name": "ap-southeast-1",
             "config": Config(retries={"max_attempts": 0}),
         }
         if config is not None:
