@@ -21,9 +21,7 @@ from src.utils import time_greater_than
 
 # TODO: revamp
 class Chat:
-    def __init__(
-        self, config: Config, mem_client=None, ks_client=None
-    ):
+    def __init__(self, config: Config, mem_client=None, ks_client=None):
         self.config = config
         self.mem_client = mem_client
         self.ks_client = ks_client
@@ -211,6 +209,7 @@ class Chat:
             model_path=Path(model_path),
             entities_path=Path(entities_path),
             entity_file_type=entities_file_type,
+            llm=self.config.models.get("aws", {}).get("name"),
         )
 
         # Create the response message.
@@ -330,7 +329,7 @@ class Chat:
 
         # Initialize the reasoning tool.
         reasoning_tool = GraphRAGReasoningTool(
-            model = self.config.models.get("aws",{}).get('name'),
+            model=self.config.models.get("aws", {}).get("name"),
             history="(No relevant conversation history!)",  # history_context,
             document_store=dataset.document_store,
             config=self.config,
@@ -338,10 +337,10 @@ class Chat:
 
         # Initialize the agent and run it.
         agent = Talk2KnowledgeGraphsAgent(
-            model = self.config.models.get("aws",{}).get('name'),
+            model=self.config.models.get("aws", {}).get("name"),
             history=[],  # history,
-            tools=[reasoning_tool.tool], 
-            config=self.config
+            tools=[reasoning_tool.tool],
+            config=self.config,
         )
         agent_response = agent.run(prompt_content)
 
