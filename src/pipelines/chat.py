@@ -209,7 +209,6 @@ class Chat:
             model_path=Path(model_path),
             entities_path=Path(entities_path),
             entity_file_type=entities_file_type,
-            llm=self.config.models.get("aws", {}).get("name"),
         )
 
         # Create the response message.
