@@ -322,8 +322,6 @@ class QueryEnhancerPipeline:
             The text to be enhanced.
         entities_to_types: Mapping[str, str]
             The mapping of the entities to their types.
-        llm: str, default="us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-            The LLM ID to use.
 
         Returns
         -------
@@ -506,8 +504,6 @@ class QueryEnhancerPipeline:
             The path to the NER model.
         entities_path: pathlib.Path
             The path to the directory that contains the entity-information files.
-        llm: str, default="us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-            The LLM ID to use.
         entities_file_type: Literal["csv", "txt"], default="csv"
             Whether the entities are in the CSV format or the TXT format.
 

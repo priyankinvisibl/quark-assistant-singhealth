@@ -27,6 +27,8 @@ class Gremlin:
     ):
         self.schema_context = schema_context
         self.document_store = document_store
+        self.config = config
+        self._llm = self.config.models.get("aws", {}).get("name")
 
         self.rag_pipeline_tool = Tool(
             name="rag_pipeline_tool",
@@ -335,7 +337,7 @@ class Gremlin:
         print(f"🔍 GENERATING QUERY FOR: {question}")
         # Use cross-account permissions if needed.
         generator_kwargs = {
-            "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "model": self._llm,
             "generation_kwargs": {"temperature": 0.0},
         }
         generator_kwargs.update(self.creds_kwargs)
