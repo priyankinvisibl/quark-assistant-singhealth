@@ -330,6 +330,7 @@ class Chat:
 
         # Initialize the reasoning tool.
         reasoning_tool = GraphRAGReasoningTool(
+            model = self.config.models.get("aws",{}).get('name'),
             history="(No relevant conversation history!)",  # history_context,
             document_store=dataset.document_store,
             config=self.config,
@@ -337,6 +338,7 @@ class Chat:
 
         # Initialize the agent and run it.
         agent = Talk2KnowledgeGraphsAgent(
+            model = self.config.models.get("aws",{}).get('name'),
             history=[],  # history,
             tools=[reasoning_tool.tool], 
             config=self.config

@@ -59,7 +59,7 @@ agents:
 
 models:
   aws: 
-    name: "apac.amazon.nova-micro-v1:0"
+    name: "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
     values: {}
   azure: 
     name: azure-gpt-v3.5turbo
