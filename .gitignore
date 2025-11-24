@@ -175,5 +175,5 @@ cython_debug/
 
 tests/
 Taskfile.yml
-# Taskfile.yaml
-# tmp/
+Taskfile.yaml
+tmp/

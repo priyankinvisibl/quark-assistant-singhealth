@@ -27,8 +27,6 @@ class Gremlin:
     ):
         self.schema_context = schema_context
         self.document_store = document_store
-        self.config = config
-        self._llm = self.config.models.get("aws", {}).get("name")
 
         self.rag_pipeline_tool = Tool(
             name="rag_pipeline_tool",
@@ -88,7 +86,13 @@ class Gremlin:
             ChatMessage.from_user(
                 dedent(
                     """
-                    You are an expert gremlin AI assistant . Answer the user's question based **only** on the provided context. If the context does not contain relevant information, **do not make up an answer**. Instead, say, "I don't have enough information to answer this."
+                    You are an expert gremlin AI assistant. Answer the user's question based **only** on the provided context. If the context does not contain relevant information, **do not make up an answer**. Instead, say, "I don't have enough information to answer this."
+                    
+                    **CRITICAL INSTRUCTIONS:**
+                    - If the query contains "Resolved entities:" section, USE ONLY THOSE ENTITY IDs, ignore any names in the original question
+                    - For pathways, ALWAYS use has('id', 'R-HSA-XXXXX') format, NEVER use has('name', ...)
+                    - For genes, ALWAYS use has('id', 'GENE_SYMBOL') format
+                    - Prioritize resolved entity IDs over any names mentioned in the question text
                     
                     ### **Context:**
                     {% for document in documents %}
@@ -98,14 +102,28 @@ class Gremlin:
                     ### **Question:**
                     {{ question }}
 
+                    ### **Examples:**
+                    Question: How many PMIDs are associated with MTOR in pathway R-HSA-165159?
+                    Query: g.V().hasLabel('Gene').has('id', 'MTOR').outE('Gene_pathway_association').inV().hasLabel('Pathway').has('id', 'R-HSA-165159').outE('Pathway_reaction_association').inV().hasLabel('Reaction').outE('Reaction_pmid_association').inV().hasLabel('Pmid').valueMap('pmid')
+
+                    Question: What genes are associated with pathway R-HSA-165159?
+                    Query: g.V().hasLabel('Pathway').has('id', 'R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
+
+                    Question: List genes in pathway R-HSA-165159?
+                    Query: g.V().hasLabel('Pathway').has('id', 'R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
+
                     ### **Guidelines:**
                     - Provide a clear, concise, and fact-based answer.
                     - Be aware of the fact that the neptune database has millions of edges and nodes and we want to keep the data scanned by the query to a minimum.
                     - If the context provides conflicting information, mention it explicitly.
                     - Do not make up answers. Only use the provided context.
                     - Do not add any external knowledge.
+                    - Query upto 70 entities for each entity in the final generated query to limit the output
                     - Do not substitute node labels unless explicitly stated.
                     - Keep in mind to use id and not preferred_id when finding the nodes and edges
+                    - **CRITICAL: Always use 'id' property for matching nodes. For pathways, ALWAYS use has('id', 'R-HSA-XXXXX') format, NEVER use has('name', ...) for pathways**
+                    - **AVOID COMPLEX OPERATIONS: Do not use .project(), .select() with .by(), or complex data transformations that create LinkedHashMap objects**
+                    - **KEEP QUERIES SIMPLE: Use direct traversals like g.V().hasLabel().has().outE().inV().valueMap()**
                     - Only respond with the Gremlin query, with no additional information, introduction, preamble, or post-amble.
                     - If comparing properties like read-counts, treat numeric values as strings, e.g., use gt('100') instead of gt(100).
                     - Avoid using `where(without(...))` or `where(within(...))` for filtering; instead, use `has('property', within(...))` or `has('property', without(...))` for compatibility with AWS Neptune's supported operations.
@@ -255,7 +273,7 @@ class Gremlin:
             {"embedder": {"text": query}, "prompt_builder": {"question": query}}
         )
         rag_response = result["llm"]["replies"][0].text
-        print(f"🔍 RAG PIPELINE RESPONSE: {rag_response}")
+        print(f"🔍 RAG response: {rag_response[:200]}{'...' if len(rag_response) > 200 else ''}")
         logging.info("RAG PIPELINE RESPONSE: %s", rag_response)
         return {"reply": rag_response}
 
@@ -334,10 +352,10 @@ class Gremlin:
 
     def generate_query(self, question: str) -> str:
         """Generate a Gremlin query from a question."""
-        print(f"🔍 GENERATING QUERY FOR: {question}")
+        print(f"🔍 Generating query for: {question[:100]}{'...' if len(question) > 100 else ''}")
         # Use cross-account permissions if needed.
         generator_kwargs = {
-            "model": self._llm,
+            "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
             "generation_kwargs": {"temperature": 0.0},
         }
         generator_kwargs.update(self.creds_kwargs)
@@ -345,15 +363,20 @@ class Gremlin:
         generated_query = self._generate_and_validate_query(
             question, self.rag_pipeline_tool, judge_llm
         )
-        print(f"🔍 FINAL GENERATED GREMLIN QUERY: {generated_query}")
+        print(f"🔍 Generated query: {generated_query[:150]}{'...' if len(generated_query) > 150 else ''}")
         logging.info("FINAL GENERATED GREMLIN QUERY: %s", generated_query)
         return generated_query
 
     def get_db_response(self, query: str) -> str | dict[str, Any]:
         """Get the response for a query from the Neptune DB."""
-        print(f"🔍 EXECUTING NEPTUNE QUERY: {query}")
+        print(f"🔍 Executing Neptune query: {query[:100]}{'...' if len(query) > 100 else ''}")
         response = self.neptune_client.execute_gremlin_query(
             gremlinQuery=query, serializer="application/json"
         )
-        print(f"🔍 NEPTUNE RAW RESPONSE: {response}")
+        # Log response size instead of full content to avoid terminal clutter
+        if isinstance(response, dict) and 'result' in response:
+            result_count = len(response['result']['data']) if 'data' in response['result'] else 0
+            print(f"🔍 NEPTUNE RESPONSE: Retrieved {result_count} results")
+        else:
+            print(f"🔍 NEPTUNE RESPONSE: {type(response).__name__} received")
         return response

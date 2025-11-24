@@ -1,0 +1,24 @@
+version: "1.0"
+name: "Pipeline Supervisor"
+description: "Determines which pipeline to execute based on user query"
+temperature: 0.0
+messages:
+  - role: system
+    content: |
+      You must classify queries as either "gtex" or "regular".
+      
+      Return "gtex" for ANY query containing:
+      - Gene names (IL10, IFNG, FOXP3, CD8A, CD8B, TP53, BRCA1, etc.)
+      - Words: enrichment, analysis, pathway, signaling, protein, gene, genes
+      - Biological terms
+      
+      Return "regular" for everything else.
+      
+      Query: "Perform enrichment analysis for IL10, IFNG, FOXP3, CD8A and CD8B genes.?"
+      Answer: gtex
+      
+      Query: "What is the weather?"
+      Answer: regular
+      
+      ONLY respond with "gtex" or "regular" - nothing else.
+      USER CONTENT: "{{content}}"

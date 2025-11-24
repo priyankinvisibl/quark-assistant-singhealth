@@ -10,6 +10,7 @@ tasks:
       APP_SUBPATH: /assistant
       APP_CONFIG: ./tmp/config.yaml
       STORAGES: true
+      AZURE_OPENAI_API_KEY: 10bd67401d72428182716906e1de5362
   promptstudio:
     cmds:
       - uv run python -m src.app.main
@@ -21,3 +22,4 @@ tasks:
       APP_CONFIG: ./tmp/config.yaml
       STORAGES: true
       APP_SUBPATH: /assistant
+      AZURE_OPENAI_API_KEY: 10bd67401d72428182716906e1de5362

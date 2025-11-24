@@ -10,12 +10,6 @@ from src.config.types import StorageConfig
 from src.internal.storage.types import Storage
 
 
-class MyConnection(RequestsHttpConnection):
-    def __init__(self, *args, **kwargs):
-        proxies = kwargs.pop("proxies", {})
-        super(MyConnection, self).__init__(*args, **kwargs)
-        self.session.proxies = proxies
-
 @dataclass
 class ResponseHitRecord(JSONWizard):
     index: str = json_field("_index")
@@ -69,30 +63,17 @@ class QClient(Storage):
     @property
     def client(self) -> OpenSearch:
         if not self._client:
+            connection_class = RequestsHttpConnection
+            auth = self.config.pop("http_auth", None)
+            if not auth:
+                session = boto3.Session()
+                region = session.region_name
+                credentials = session.get_credentials()
+                auth = RequestsAWSV4SignerAuth(credentials, region)
             self._client = OpenSearch(
-                "https://vpc-gravity-dev-opensearch-twyyo3waeyvxtpvdenhkt4rrda.us-east-1.es.amazonaws.com",
-                proxies={
-                    "http": "socks5://localhost:3128",
-                    "https": "socks5://localhost:3128",
-                },
-                timeout=60,
-                connection_class=MyConnection,
+                **self.config, http_auth=auth, connection_class=connection_class
             )
         return self._client
-    # @property
-    # def client(self) -> OpenSearch:
-    #     if not self._client:
-    #         connection_class = RequestsHttpConnection
-    #         auth = self.config.pop("http_auth", None)
-    #         if not auth:
-    #             session = boto3.Session()
-    #             region = session.region_name
-    #             credentials = session.get_credentials()
-    #             auth = RequestsAWSV4SignerAuth(credentials, region)
-    #         self._client = OpenSearch(
-    #             **self.config, http_auth=auth, connection_class=connection_class
-    #         )
-    #     return self._client
 
     @override
     def store_exists(self, store: str):

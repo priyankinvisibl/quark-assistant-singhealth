@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, status
 
 from src.app.dependencies import dependencies, exceptions, middleware
-from src.app.routers import simple_chat
+from src.app.routers import knowledgebases, memories, prompts, knowledge_graph
 from src.config.state import State
 from src.config.types import CLI
 
@@ -23,8 +23,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     lifespan=lifespan,
+    exception_handlers=exceptions,
+    dependencies=dependencies,
     docs_url=cli.app_subpath + "/docs",
     openapi_url=cli.app_subpath + "/openapi.json",
+    # generate_unique_id_function=generate_uuid,
 )
 
 
@@ -45,8 +48,16 @@ app.middleware("http")(middleware)
 #     return executor.code(request_body["input"])
 
 
-# Only include the simplified chat router
-app.include_router(simple_chat.router, prefix=cli.app_subpath + "/api/v1")
+path = "/api/v1/projects/{project}"
+app.include_router(memories.router, prefix=cli.app_subpath + path + "/memories")
+app.include_router(
+    knowledgebases.router, prefix=cli.app_subpath + path + "/knowledgebases"
+)
+# if cli.prompt_studio:
+app.include_router(prompts.router, prefix=cli.app_subpath + path + "/prompts")
+
+# Add simplified knowledge graph endpoint
+app.include_router(knowledge_graph.router, prefix=cli.app_subpath + "/api/v1")
 
 
 if __name__ == "__main__":

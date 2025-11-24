@@ -263,45 +263,38 @@ async def knowledge_graph_chat(
     )
 
 
-@router.post("/knowledge-graph/chat", response_model=ChatResponse)
+@router.post(
+    "/{memory_id}/knowledge-graph/chat",
+    response_model=ChatResponse,
+)
 async def gtex_chat(
-    message: Annotated[dict[str, Any], Body(embed=True)]
+    ctx: context, memory_id: str, message: Annotated[dict[str, Any], Body(embed=True)]
 ) -> ChatResponse:
     """Chat with GTEx data as context.
 
     This endpoint integrates GTEx data for generating responses.
     """
-    message["origin"] = "default_user"
-    message["memory_id"] = "default_memory"
+    message["origin"] = ctx.user.name
+    message["memory_id"] = memory_id
 
     # Get the schema and entities paths from the configuration.
     raise_schema_exc, raise_gtex_exc = True, True
     schema_location, entities_path, entities_file_type, ner_path = "", "", "csv", ""
-    
-    # Use hardcoded config or load from file
-    from src.config.types import Config
-    from src.utils import read_yaml
-    
-    try:
-        config_data = read_yaml("config/config.yaml")
-        config = Config.from_dict(config_data)
-        kg_settings = config.knowledge_graph
-        if kg_settings is not None:
-            schema_settings = kg_settings.schema
-            gtex_settings = kg_settings.gtex
-            if schema_settings is not None:
-                schema_location = schema_settings.location
-                raise_schema_exc = False
-            if gtex_settings is not None:
-                entities_settings = gtex_settings.entities
-                if entities_settings is not None:
-                    ner_path = gtex_settings.ner_path
-                    entities_path = entities_settings.entities_path
-                    entities_file_type = entities_settings.entities_file_type
-                    if entities_path is not None:
-                        raise_gtex_exc = False
-    except Exception:
-        pass  # Use defaults or raise exceptions below
+    kg_settings = ctx.plant.state.config.knowledge_graph
+    if kg_settings is not None:
+        schema_settings = kg_settings.schema
+        gtex_settings = kg_settings.gtex
+        if schema_settings is not None:
+            schema_location = schema_settings.location
+            raise_schema_exc = False
+        if gtex_settings is not None:
+            entities_settings = gtex_settings.entities
+            if entities_settings is not None:
+                ner_path = gtex_settings.ner_path
+                entities_path = entities_settings.entities_path
+                entities_file_type = entities_settings.entities_file_type
+                if entities_path is not None:
+                    raise_gtex_exc = False
 
     if raise_schema_exc or not schema_location:
         raise HTTPException(
@@ -319,18 +312,20 @@ async def gtex_chat(
                 "administrator"
             ),
         )
-
-    # Create a simple chat client
-    from src.pipelines.chat import Chat
-    from src.config.types import Config
-    
-    config_data = read_yaml("config/config.yaml")
-    config = Config.from_dict(config_data)
-    
-    chat_client = Chat(config, None, None)  # No memory or knowledge store clients
-    
+    _, memory = ctx.plant.get_memory_client().get_history(memory_id)
+    if not memory:
+        try:
+            query = Message.from_dict(message)
+            memory = Memory(user=query.origin, memory_id=query.memory_id)
+            query.metadata["agent"] = "nomenclator-title"
+            title_response = ctx.plant.run_agent(query, memory, storage=False)
+            if title_response:
+                memory.name = title_response.content.removeprefix("Title: ")
+            ctx.plant.get_memory_client().create_memory(memory)
+        except Exception as e:
+            print(e)
     return ChatResponse(
-        reply=chat_client.gtex_chat(
+        reply=ctx.plant.get_chat_client().gtex_chat(
             Message.from_dict(message),
             schema_path=schema_location,
             entities_path=entities_path,

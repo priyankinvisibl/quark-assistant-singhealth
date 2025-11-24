@@ -21,6 +21,12 @@ agents:
   task-handler-v0: 
     vendor: aws
     prompt: task-handler
+  pipeline-supervisor:
+    vendor: aws
+    prompt: pipeline-supervisor
+  entity-validator:
+    vendor: aws
+    prompt: entity-validator
   validation: 
     vendor: aws
   qa: 
@@ -59,8 +65,11 @@ agents:
 
 models:
   aws: 
-    name: "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
-    values: {}
+    name: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    values:
+      guardrailConfig:
+        guardrailIdentifier: kyf9ptn7y52u
+        guardrailVersion: DRAFT
   azure: 
     name: azure-gpt-v3.5turbo
     values:
@@ -77,22 +86,22 @@ storages:
     config: {}
     stores:
       myfiles: "s3://artifacts02/artifacts/{user}/{project}/uploads"
-      #add support for other datalocations through opensearch index
-  # opensearch:
-  #   enabled: true
-  #   config:
-  #     hosts: http://localhost:9200
-  #     http_auth:
-  #       - admin
-  #       - Invisibl*123
-  #   stores:
-  #     users: projectmembers-dev
-  #     messages: messages-dev
-  #     embeddings: embeddings-dev
-  #     prompts: prompts-dev
-  #     memories: memories-dev
-  #     datalocations: datalocations-dev
-  #     knowledgebases: knowledgebases-dev
+      # add support for other datalocations through opensearch index
+  opensearch:
+    enabled: true  # Keep enabled but will use in-memory implementation
+    config:
+      hosts: http://localhost:9200
+      http_auth:
+        - admin
+        - Invisibl*123
+    stores:
+      users: projectmembers-dev
+      messages: messages-dev
+      embeddings: embeddings-dev
+      prompts: prompts-dev
+      memories: memories-dev
+      datalocations: datalocations-dev
+      knowledgebases: knowledgebases-dev
 knowledgestores:
   opensearch:
     retriever: 
@@ -106,22 +115,17 @@ knowledgestores:
         azure_endpoint: https://openai-inv.openai.azure.com/
         azure_deployment: openai-embedding
 
-# knowledge_graph:
-#   schema:
-#     location: "C:/invisibl/quark-assistant/datastores/neptune/schema.yaml"
-#   gtex:
-  
-#     entities:
-#       entities_path: "C:/Users/priya/Downloads/csvs"  
-#       entities_file_type: "csv"  
 knowledge_graph:
   schema:
     location: "datastores/neptune/schema.yaml"
   gtex:
+  
     entities:
-      entities_path: "datastores/neptune/gtex/data/biocypher"
-      entities_file_type: "csv"
+      entities_path: "datastores/neptune/gtex/data/biocypher"  
+      entities_file_type: "txt"  
     ner_path: "datastores/neptune/gtex/en_core_sci_sm-0.5.4/en_core_sci_sm/en_core_sci_sm-0.5.4"
     graph_db:
       endpoint: "https://db-neptune-1-instance-1.cigfmmqgs6p9.us-east-1.neptune.amazonaws.com:8182"
+
+
 

@@ -67,38 +67,27 @@ storages:
     stores:
       myfiles: "s3://artifacts02/artifacts/{user}/{project}/uploads"
       #add support for other datalocations through opensearch index
-  # opensearch:
-  #   enabled: true
-  #   config:
-  #     hosts: https://vpc-gravity-dev-opensearch-twyyo3waeyvxtpvdenhkt4rrda.us-east-1.es.amazonaws.com:443
-  #   stores:
-  #     users: users-v1-dev
-  #     messages: messages-v1-dev
-  #     embeddings: embeddings-v1-dev
-  #     prompts: prompts-v1-dev
-  #     memories: memories-v1-dev
-  #     datalocations: datalocations-v1-dev
-  #     knowledgebases: knowledgebases-v1-dev
+  opensearch:
+    enabled: true
+    config:
+      hosts: https://vpc-gravity-dev-opensearch-twyyo3waeyvxtpvdenhkt4rrda.us-east-1.es.amazonaws.com:443
+    stores:
+      users: users-v1-dev
+      messages: messages-v1-dev
+      embeddings: embeddings-v1-dev
+      prompts: prompts-v1-dev
+      memories: memories-v1-dev
+      datalocations: datalocations-v1-dev
+      knowledgebases: knowledgebases-v1-dev
 knowledgestores:
-  # opensearch:
-  #   retriever: 
-  #     type: bm25
-  #     config: {}
-  #   document_store: 
-  #     config: {}
-  #   embedder:
-  #     sentencetransformer: {}
-  #     azure:
-  #       azure_endpoint: https://openai-inv.openai.azure.com/
-  #       azure_deployment: openai-embedding
-
-knowledge_graph:
-  schema:
-    location: "datastores/neptune/schema.yaml"
-  gtex:
-    entities:
-      entities_path: "datastores/neptune/gtex/data/biocypher"
-      entities_file_type: "csv"
-    ner_path: "datastores/neptune/gtex/en_core_sci_sm-0.5.4"
-    graph_db:
-      endpoint: "https://your-neptune-cluster.cluster-xyz.us-east-1.neptune.amazonaws.com:8182"
+  opensearch:
+    retriever: 
+      type: bm25
+      config: {}
+    document_store: 
+      config: {}
+    embedder:
+      sentencetransformer: {}
+      azure:
+        azure_endpoint: https://openai-inv.openai.azure.com/
+        azure_deployment: openai-embedding

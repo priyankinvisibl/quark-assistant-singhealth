@@ -10,6 +10,7 @@ from src.config.state import State
 from src.internal.storage.opensearch.knowledgestore import KSClient
 from src.internal.storage.opensearch.memory import MemClient
 from src.internal.storage.opensearch.promptstore import QClient
+from src.internal.storage.memory import InMemoryMemClient, InMemoryKSClient, InMemoryQClient
 from src.internal.storage.types import (
     KnowledgeStoreClient,
     Memory,
@@ -40,8 +41,9 @@ class Plant:
     def get_chat_client(self) -> chat.Chat:
         kb_storage = self.state.get_storage("opensearch")
         mem_storage = self.state.get_storage("opensearch")
-        kb_client = KSClient(kb_storage)
-        mem_client = MemClient(mem_storage)
+        # Use in-memory clients
+        kb_client = InMemoryKSClient(kb_storage)
+        mem_client = InMemoryMemClient(mem_storage)
         config = self.state.config
         return chat.Chat(config, mem_client, kb_client)
 
@@ -52,13 +54,13 @@ class Plant:
         return embed.Embed(kb_client, s3_storage)
 
     def get_knowledgestore_client(self) -> KnowledgeStoreClient:
-        return KSClient(self.state.get_storage("opensearch"))
+        return InMemoryKSClient(self.state.get_storage("opensearch"))
 
     def get_memory_client(self) -> MemoryClient:
-        return MemClient(self.state.get_storage("opensearch"))
+        return InMemoryMemClient(self.state.get_storage("opensearch"))
 
     def get_promptstore_client(self) -> PromptStoreClient:
-        return QClient(self.state.get_storage("opensearch"))
+        return InMemoryQClient(self.state.get_storage("opensearch"))
 
     def get_chat_generator(self, provider, config: dict[str, Any]):
         module, cls = llms[provider].rsplit(".", 1)
@@ -78,7 +80,7 @@ class Plant:
         return pipe.run(values)
 
     # TODO: move
-    def run_agent(self, message: Message, memory: Memory):
+    def run_agent(self, message: Message, memory: Memory, storage: bool = True):
         # TODO: documents are not supported by haystack chatmessages as of yet
 
         system_prompts = []
@@ -97,7 +99,7 @@ class Plant:
             # TODO:
             if bedrock_input["content"][0]["text"] is None:
                 bedrock_input["content"][0]["text"] = text_input
-            
+
         # Get temperature from prompt config if available
         temperature = prompt_yaml.get("temperature", None)
 
@@ -130,7 +132,9 @@ class Plant:
             modelId=model,
             messages=[bedrock_input],
             system=system_prompts,
-            inferenceConfig={"temperature": temperature} if temperature is not None else {},
+            inferenceConfig={"temperature": temperature}
+            if temperature is not None
+            else {},
         )
         response = Message(
             origin=message.metadata["agent"],
@@ -143,10 +147,11 @@ class Plant:
             },
             memory_id=message.memory_id,
         )
-        # TODO: error in creating objects?
-        self.get_memory_client().create_memory(memory)
-        self.get_memory_client().add_messages(message)
-        self.get_memory_client().add_messages(response)
+        if storage:
+            # TODO: error in creating objects?
+            self.get_memory_client().create_memory(memory)
+            self.get_memory_client().add_messages(message)
+            self.get_memory_client().add_messages(response)
         # else:
         #     from src.components.agents.agent import DepecreatedAgent
 

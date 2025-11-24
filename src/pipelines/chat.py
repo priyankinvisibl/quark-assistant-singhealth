@@ -21,7 +21,9 @@ from src.utils import time_greater_than
 
 # TODO: revamp
 class Chat:
-    def __init__(self, config: Config, mem_client=None, ks_client=None):
+    def __init__(
+        self, config: Config, mem_client: MemoryClient, ks_client: KnowledgeStoreClient
+    ):
         self.config = config
         self.mem_client = mem_client
         self.ks_client = ks_client
@@ -154,84 +156,13 @@ class Chat:
         entities_file_type: Literal["csv", "txt"],
         model_path: str,
     ) -> Message:
-        """Generate a chat response using GTEx integration.
+        """Generate a chat response using pure Haystack GTEx pipeline."""
+        from .enhanced_gtex_chat import EnhancedGtexChat
 
-        This method integrates the GTEx pipeline to process the prompt and generate a
-        response.
-
-        Parameters
-        ----------
-        prompt: Message
-            The user-provided prompt message.
-        schema_path: str
-            Path to the schema JSON file.
-        entities_path: str
-            Path to the directory containing files for entity mapping.
-        entities_file_type: Literal["csv", "txt"]
-            Whether the entities are in the CSV format or the TXT format.
-        model_path: str
-            Path to the directory that contains the NER model (hint: this directory
-            should contain the `config.cfg` file).
-
-        Returns
-        -------
-        response: Message
-            The assistant's response.
-        """
-        prompt_content = prompt.content
-        if prompt_content is None:
-            raise HTTPException(status_code=422, detail="content is a mandatory field")
-
-        # TODO: use history
-        # history, memory = self.mem_client.get_history(prompt.memory_id)
-        # Initialize the QueryEnhancerPipeline.
-        schema = {}
-        try:
-            with open(schema_path) as f:
-                if schema_path.endswith(".json"):
-                    import json
-
-                    schema = json.load(f)
-                elif schema_path.endswith(".yaml"):
-                    import yaml
-
-                    schema = yaml.safe_load(f)
-                else:
-                    raise Exception("Schema must be a JSON or YAML file")
-        except Exception as e:
-            raise Exception(f"Failed to load schema or graph data: {e}") from e
-
-        pipeline = QueryEnhancerPipeline(schema=schema, config=self.config)
-
-        # Run the pipeline.
-        pipeline_response = pipeline.run(
-            prompt=prompt_content,
-            model_path=Path(model_path),
-            entities_path=Path(entities_path),
-            entity_file_type=entities_file_type,
+        enhanced_chat = EnhancedGtexChat(self.config, self.mem_client, self.ks_client)
+        return enhanced_chat.enhanced_gtex_chat(
+            prompt, schema_path, entities_path, entities_file_type, model_path
         )
-
-        # Create the response message.
-        response = Message(
-            content=pipeline_response.nl_db_response,
-            origin=prompt.origin,
-            memory_id=prompt.memory_id,
-            role="assistant",
-        )
-
-        # self.mem_client.add_messages(prompt)
-        # self.mem_client.add_messages(response)
-        # if not memory:
-        #     memory = Memory(user=prompt.origin, memory_id=prompt.memory_id)
-        #     self.mem_client.create_memory(memory)
-        #     result = run_pipeline(prompt, self.config, "nomenclator-title")
-        #     if result is None or result.content is None:
-        #         raise HTTPException(
-        #             status_code=500, detail="error generating name for conversation"
-        #         )
-        #     memory.name = result.content.removeprefix("Title: ")
-        #     self.mem_client.update_memory(memory.memory_id, memory)
-        return response
 
     def knowledge_graph_chat(
         self, prompt: Message, graph_location: str, schema_location: str
@@ -314,32 +245,28 @@ class Chat:
         dataset = QuarkAIDataset()
         dataset.load_data(schema, graph_df)
 
-        # history, memory = self.mem_client.get_history(prompt.memory_id)
-        # if memory is None:
-        #     raise HTTPException(
-        #         status_code=404, detail=f"Memory {prompt.memory_id} not found"
-        #     )
-        # if history is None:
-        #     history_context = "(No relevant conversation history!)"
-        # else:
-        #     history_context = "\n\n".join(
-        #         f"{message.role}: {message.content}" for message in history
-        #     )
+        history, memory = self.mem_client.get_history(prompt.memory_id)
+        if memory is None:
+            raise HTTPException(
+                status_code=404, detail=f"Memory {prompt.memory_id} not found"
+            )
+        if history is None:
+            history_context = "(No relevant conversation history!)"
+        else:
+            history_context = "\n\n".join(
+                f"{message.role}: {message.content}" for message in history
+            )
 
         # Initialize the reasoning tool.
         reasoning_tool = GraphRAGReasoningTool(
-            model=self.config.models.get("aws", {}).get("name"),
-            history="(No relevant conversation history!)",  # history_context,
+            history=history_context,
             document_store=dataset.document_store,
             config=self.config,
         )
 
         # Initialize the agent and run it.
         agent = Talk2KnowledgeGraphsAgent(
-            model=self.config.models.get("aws", {}).get("name"),
-            history=[],  # history,
-            tools=[reasoning_tool.tool],
-            config=self.config,
+            history=history, tools=[reasoning_tool.tool], config=self.config
         )
         agent_response = agent.run(prompt_content)
 
@@ -371,8 +298,8 @@ class Chat:
             role="assistant",
             metadata=prompt.metadata,
         )
-        # self.mem_client.add_messages(prompt)
-        # self.mem_client.add_messages(response)
+        self.mem_client.add_messages(prompt)
+        self.mem_client.add_messages(response)
         os.remove(tmp_graph_location)
         return response
 

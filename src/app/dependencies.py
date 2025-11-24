@@ -35,7 +35,7 @@ class ContextDependency:
         # TODO: platform auth needs to be integrated
         try:
             user = next(user for user in state.users if user.email == gravity_userid)
-        except KeyError:
+        except (KeyError, StopIteration):
             raise HTTPException(status_code=401)
         return Context(request, user, project, Plant(state))
 
