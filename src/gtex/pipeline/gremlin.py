@@ -93,8 +93,8 @@ class Gremlin:
                     
                     **CRITICAL INSTRUCTIONS:**
                     - If the query contains "Resolved entities:" section, USE ONLY THOSE ENTITY IDs, ignore any names in the original question
-                    - For pathways, ALWAYS use has('id', 'R-HSA-XXXXX') format, NEVER use has('name', ...)
-                    - For genes, ALWAYS use has('id', 'GENE_SYMBOL') format
+                    - For pathways, ALWAYS use hasId('R-HSA-XXXXX') format, NEVER use has('name', ...)
+                    - For genes, ALWAYS use hasId('GENE_SYMBOL') format
                     - Prioritize resolved entity IDs over any names mentioned in the question text
                     
                     ### **Context:**
@@ -107,13 +107,13 @@ class Gremlin:
 
                     ### **Examples:**
                     Question: How many PMIDs are associated with MTOR in pathway R-HSA-165159?
-                    Query: g.V().hasLabel('Gene').has('id', 'MTOR').outE('Gene_pathway_association').inV().hasLabel('Pathway').has('id', 'R-HSA-165159').outE('Pathway_reaction_association').inV().hasLabel('Reaction').outE('Reaction_pmid_association').inV().hasLabel('Pmid').valueMap('pmid')
+                    Query: g.V().hasLabel('Gene').hasId('MTOR').outE('Gene_pathway_association').inV().hasLabel('Pathway').hasId('R-HSA-165159').outE('Pathway_reaction_association').inV().hasLabel('Reaction').outE('Reaction_pmid_association').inV().hasLabel('Pmid').valueMap('pmid')
 
                     Question: What genes are associated with pathway R-HSA-165159?
-                    Query: g.V().hasLabel('Pathway').has('id', 'R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
+                    Query: g.V().hasLabel('Pathway').hasId('R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
 
                     Question: List genes in pathway R-HSA-165159?
-                    Query: g.V().hasLabel('Pathway').has('id', 'R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
+                    Query: g.V().hasLabel('Pathway').hasId('R-HSA-165159').inE('Gene_pathway_association').outV().hasLabel('Gene').valueMap('id', 'name')
 
                     ### **Guidelines:**
                     - Provide a clear, concise, and fact-based answer.
@@ -124,7 +124,7 @@ class Gremlin:
                     - Query upto 70 entities for each entity in the final generated query to limit the output
                     - Do not substitute node labels unless explicitly stated.
                     - Keep in mind to use id and not preferred_id when finding the nodes and edges
-                    - **CRITICAL: Always use 'id' property for matching nodes. For pathways, ALWAYS use has('id', 'R-HSA-XXXXX') format, NEVER use has('name', ...) for pathways**
+                    - **CRITICAL: Always use hasId() method for matching nodes. For pathways, ALWAYS use hasId('R-HSA-XXXXX') format, NEVER use has('name', ...) for pathways**
                     - **AVOID COMPLEX OPERATIONS: Do not use .project(), .select() with .by(), or complex data transformations that create LinkedHashMap objects**
                     - **KEEP QUERIES SIMPLE: Use direct traversals like g.V().hasLabel().has().outE().inV().valueMap()**
                     - Only respond with the Gremlin query, with no additional information, introduction, preamble, or post-amble.
