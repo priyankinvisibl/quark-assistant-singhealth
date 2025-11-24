@@ -284,7 +284,7 @@ class Gremlin:
     def _build_judge_prompt(self, user_query, gremlin_query):
         return [
             ChatMessage.from_system(
-                "You are a Gremlin query validator. Respond with 'Yes' or 'No' only."
+                "You are a Gremlin query validator. Respond with 'Yes' or 'No' only. IMPORTANT: hasId('value') is the CORRECT syntax for Neptune, NOT has('id', 'value')."
             ),
             ChatMessage.from_user(
                 dedent(
@@ -298,7 +298,12 @@ class Gremlin:
                     ### Schema Context:
                     {self.schema_context}
 
-                    Does the Gremlin query correctly fulfill the user's request?  if the answer is "No" also mention why the it wont fullfill the user request. only mention the reason with no.
+                    ### Validation Rules:
+                    - hasId('value') is CORRECT ✅
+                    - has('id', 'value') is INCORRECT ❌
+                    - Query should use proper Neptune syntax
+
+                    Does the Gremlin query correctly fulfill the user's request? If the answer is "No" also mention why it won't fulfill the user request. Only mention the reason with no.
                     """  # noqa: E501
                 ).strip()
             ),
@@ -330,6 +335,10 @@ class Gremlin:
         # First try
         response = rag_pipeline_tool.function(user_query)
         gremlin_query = response["reply"].strip()
+        
+        # Post-process: Replace has('id', ...) with hasId(...)
+        gremlin_query = self._fix_has_id_syntax(gremlin_query)
+        
         logging.info("Gremlin Query: %s", gremlin_query)
 
         # Judge first attempt
@@ -346,12 +355,29 @@ class Gremlin:
         # Retry once with updated user query
         response_retry = rag_pipeline_tool.function(user_query)
         gremlin_query_retry = response_retry["reply"].strip()
+        
+        # Post-process retry as well
+        gremlin_query_retry = self._fix_has_id_syntax(gremlin_query_retry)
+        
         logging.info("Retry Gremlin Query: %s", gremlin_query_retry)
 
         if self._judge_gremlin_query(judge_llm, user_query, gremlin_query_retry):
             return gremlin_query_retry
 
         return "ERROR: Could not generate a valid Gremlin query for this request."
+    
+    def _fix_has_id_syntax(self, query: str) -> str:
+        """Replace has('id', 'value') with hasId('value') in Gremlin queries."""
+        import re
+        # Pattern to match has('id', 'value') and replace with hasId('value')
+        pattern = r"\.has\('id',\s*'([^']+)'\)"
+        replacement = r".hasId('\1')"
+        fixed_query = re.sub(pattern, replacement, query)
+        
+        if fixed_query != query:
+            print(f"🔧 Fixed query syntax: has('id', ...) → hasId(...)")
+        
+        return fixed_query
 
     def generate_query(self, question: str) -> str:
         """Generate a Gremlin query from a question."""
