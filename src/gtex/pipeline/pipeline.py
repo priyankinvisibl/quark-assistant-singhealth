@@ -43,7 +43,7 @@ class QueryEnhancerPipeline:
         self.document_store = InMemoryDocumentStore()
         document_content = json.dumps(schema, indent=2)
         document = Document(content=document_content)
-
+        self.config = config
         # Index the schema into the in-memory document store, so the RAG pipeline can
         # retrieve it later.
         indexing_pipeline = Pipeline()
@@ -91,6 +91,7 @@ class QueryEnhancerPipeline:
         }
         if config is not None:
             client_kwargs.update(get_boto3_creds(config.models.get("aws", {})))
+        self._llm = self.config.models.get("aws", {}).get("name")
         self.client = boto3.client(**client_kwargs)
         self.db_entity_type_mapper = {"gene_id": "gene"}
         self.graph_db_client = Gremlin(
@@ -272,13 +273,12 @@ class QueryEnhancerPipeline:
         self,
         prompt: str,
         system_instructions: str,
-        llm: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         temperature: float = 0.0,
     ) -> str:
         """Make a text-to-text LLM call using boto3 and Amazon Bedrock."""
         logging.debug("Making an LLM call...")
         response = self.client.converse(
-            modelId=llm,
+            modelId=self._llm,
             messages=[{"role": "user", "content": [{"text": prompt}]}],
             system=[{"text": system_instructions}],
             inferenceConfig={"temperature": temperature},
@@ -295,7 +295,6 @@ class QueryEnhancerPipeline:
         self,
         original_prompt: str,
         entities_to_types: Mapping[str, str],
-        llm: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
     ) -> str:
         is_enrichment_analysis = any(
             term in original_prompt.lower()
@@ -321,8 +320,6 @@ class QueryEnhancerPipeline:
             The text to be enhanced.
         entities_to_types: Mapping[str, str]
             The mapping of the entities to their types.
-        llm: str, default="us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-            The LLM ID to use.
 
         Returns
         -------
@@ -413,9 +410,7 @@ class QueryEnhancerPipeline:
             llm_prompt += "\n\nThis is an enrichment analysis request. Ensure the enhanced text asks for comprehensive disease, pathway, drug, and cellular location associations."
 
         logging.debug("Prompt given to LLM: %s", llm_prompt)
-        return self._make_llm_call(
-            prompt=llm_prompt, system_instructions=system_prompt, llm=llm
-        )
+        return self._make_llm_call(prompt=llm_prompt, system_instructions=system_prompt)
 
     def _generate_query(self, question: str) -> str:
         """Generate the query for the graph DB.
@@ -437,7 +432,6 @@ class QueryEnhancerPipeline:
         self,
         enhanced_prompt: str,
         db_response: str,
-        llm: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
     ) -> str:
         """Convert the graph DB response to a natural language answer.
 
@@ -479,16 +473,13 @@ class QueryEnhancerPipeline:
             .strip()
         )
         logging.debug("Prompt for converting to natural language: %s", llm_prompt)
-        return self._make_llm_call(
-            prompt=llm_prompt, system_instructions=system_prompt, llm=llm
-        )
+        return self._make_llm_call(prompt=llm_prompt, system_instructions=system_prompt)
 
     def run(
         self,
         prompt: str,
         model_path: Path,
         entities_path: Path,
-        llm: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
         entity_file_type: Literal["txt", "csv"] = "csv",
     ) -> PipelineResponse:
         """Run the entire pipeline.
@@ -511,8 +502,6 @@ class QueryEnhancerPipeline:
             The path to the NER model.
         entities_path: pathlib.Path
             The path to the directory that contains the entity-information files.
-        llm: str, default="us.anthropic.claude-3-5-sonnet-20241022-v2:0"
-            The LLM ID to use.
         entities_file_type: Literal["csv", "txt"], default="csv"
             Whether the entities are in the CSV format or the TXT format.
 
@@ -539,8 +528,8 @@ class QueryEnhancerPipeline:
         entities_to_types = self._resolve_gene_aliases(entities_to_types)
 
         llm_enhanced_prompt = self._enhance_prompt_with_entities(
-            original_prompt=prompt, entities_to_types=entities_to_types, llm=llm
-        )
+            original_prompt=prompt, entities_to_types=entities_to_types
+            )
         generated_query = self._generate_query(question=llm_enhanced_prompt)
         db_response = ""
         try:
