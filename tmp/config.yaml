@@ -125,7 +125,7 @@ knowledge_graph:
       entities_file_type: "txt"  
     ner_path: "datastores/neptune/gtex/en_core_sci_sm-0.5.4/en_core_sci_sm/en_core_sci_sm-0.5.4"
     graph_db:
-      endpoint: "https://db-neptune-1-instance-1.cigfmmqgs6p9.us-east-1.neptune.amazonaws.com:8182"
+      endpoint: "https://biocuration-knowledge-graph-instance-1.cdayu8m0iuvf.ap-southeast-1.neptune.amazonaws.com:8182"
 
 
 
