@@ -70,7 +70,7 @@ def get_generatorv2(model_config: dict[str, Any], settings: AgentSettings):
         cv.update(get_boto3session_haystack(model_config))
         print(f"arn:aws:iam::{ca['id']}:role/{ca['role']}")
     return model_name, AmazonBedrockChatGenerator(
-        model="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
         **cv,
     )
 

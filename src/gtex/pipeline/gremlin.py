@@ -358,7 +358,7 @@ class Gremlin:
         print(f"🔍 Generating query for: {question[:100]}{'...' if len(question) > 100 else ''}")
         # Use cross-account permissions if needed.
         generator_kwargs = {
-            "model": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+            "model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
             "generation_kwargs": {"temperature": 0.0},
         }
         generator_kwargs.update(self.creds_kwargs)

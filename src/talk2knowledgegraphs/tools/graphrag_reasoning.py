@@ -27,7 +27,7 @@ class GraphRAGReasoningTool:
         self,
         history: str,
         document_store: InMemoryDocumentStore,
-        model: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model: str = "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         config: Config | None = None,
     ):

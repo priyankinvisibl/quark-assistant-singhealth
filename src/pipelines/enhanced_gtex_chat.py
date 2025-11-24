@@ -175,7 +175,7 @@ class SupervisorComponent:
         # Use model from config instead of hardcoded
         generator_kwargs = {
             "model": config.models.get("aws", {}).get(
-                "name", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+                "name", "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
             ),
             "generation_kwargs": {"temperature": 0.0},
         }
@@ -1226,7 +1226,7 @@ class RegularChatComponent:
         # Initialize LLM for regular chat
         generator_kwargs = {
             "model": config.models.get("aws", {}).get(
-                "name", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+                "name", "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
             ),
             "generation_kwargs": {"temperature": 0.7},
         }

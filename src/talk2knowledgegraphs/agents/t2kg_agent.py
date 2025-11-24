@@ -20,7 +20,7 @@ class Talk2KnowledgeGraphsAgent:
     def __init__(
         self,
         history: str,
-        model: str = "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model: str = "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
         tools: list[Tool] | None = None,
         config: Config | None = None,
     ):

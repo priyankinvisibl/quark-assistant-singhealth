@@ -91,7 +91,7 @@ class QueryEnhancerPipeline:
         }
         if config is not None:
             client_kwargs.update(get_boto3_creds(config.models.get("aws", {})))
-        self._llm = self.config.models.get("aws", {}).get("name")
+        self._llm = self.config.models.get("aws", {}).get("name", "global.anthropic.claude-sonnet-4-5-20250929-v1:0")
         self.client = boto3.client(**client_kwargs)
         self.db_entity_type_mapper = {"gene_id": "gene"}
         self.graph_db_client = Gremlin(
