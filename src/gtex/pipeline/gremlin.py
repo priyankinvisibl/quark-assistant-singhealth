@@ -136,17 +136,17 @@ class Gremlin:
                     - **IMPORTANT: Whenever pathways are mentioned in any query, ALWAYS include Pmid if available else mention no pmid for that particular pathway
 
                     # Disease Enrichment
-                    g.V().hasLabel('Gene').has('id', within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
+                    g.V().hasLabel('Gene').hasId(within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
                     .in('StudyToDiseaseAssociation').hasLabel('DiseaseOrPhenotypicFeature').as('disease')
                     .select('gene', 'disease').by(valueMap('id', 'name')).by(valueMap('id', 'keywords'))
 
                     # Drug Enrichment  
-                    g.V().hasLabel('Gene').has('id', within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
+                    g.V().hasLabel('Gene').hasId(within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
                     .in('DrugToGeneAssociation').hasLabel('Drug').as('drug')
                     .select('gene', 'drug').by(valueMap('id', 'name')).by(valueMap('id', 'name', 'concept_id'))
 
                     # Pathway Enrichment (current - but enhance)
-                    g.V().hasLabel('Gene').has('id', within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
+                    g.V().hasLabel('Gene').hasId(within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
                     .outE('Gene_pathway_association').inV().hasLabel('Pathway').as('pathway')
                     .select('gene', 'pathway').by(valueMap('id', 'name')).by(valueMap('id', 'name', 'reactome_id'))
 
@@ -155,7 +155,7 @@ class Gremlin:
                     -query = "Perform enrichment analysis for IL10, IFNG, FOXP3, CD8A and CD8B genes"
                               "enrichment analysis for genes IL10, IFNG, FOXP3, CD8A, CD8B"
                               "analyze genes IL10, IFNG, FOXP3, CD8A, CD8B"
-                    -solution = g.V().hasLabel('Gene').has('id', within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
+                    -solution = g.V().hasLabel('Gene').hasId(within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).as('gene')
                         .union(
                             __.outE('Gene_pathway_association').inV().hasLabel('Pathway').as('pathway')
                             .select('gene', 'pathway').by(valueMap('id', 'name')).by(valueMap('id', 'name', 'reactome_id')),
@@ -176,16 +176,16 @@ class Gremlin:
                     -solution = "g.V('GTEX-1117F-0526-SM-5EGHJ').in('MaterialSampleToEntityAssociation').hasLabel('Gene').values('id')"
                     -query = "a gremlin query to get tissue sample ids where the tissue type is Breast ,donors are female  ,tissue sample are associated with Gene id BRCA1 ?"
                             "list of tissue samples from female donores with tissue type Breast and have expression of gene BRCA1 ?"
-                    -solution = g.V().hasLabel('MaterialSample').has('SMTS', 'Breast').as('sample').out('CaseToEntityAssociation').has('sex', 'female').as('donor').select('sample').in('MaterialSampleToEntityAssociation').hasLabel('Gene').has('id', 'BRCA1').select('sample').values('id')
+                    -solution = g.V().hasLabel('MaterialSample').has('SMTS', 'Breast').as('sample').out('CaseToEntityAssociation').has('sex', 'female').as('donor').select('sample').in('MaterialSampleToEntityAssociation').hasLabel('Gene').hasId('BRCA1').select('sample').values('id')
                     -query = "can you give me a gremlin query to get list of female tissue samples donors , death reason slow death and AGE group is 60-69?"
                             "list of female sample donors with death reason slow death and age group 60-69?"
                     -solution = "g.V().hasLabel('Case').has('sex', 'female').has('DTHHRDY', 'Slow death').has('AGE', '60-69').values('id')"
                     -query = "What are the sample IDs where the tissue type is breast and the read-count expression of the genes CD274 and PDCD1 is greater than '100', where the patients are female and in the age group 50-59 years?"
-                    -solution = g.V().hasLabel('MaterialSample').has('SMTS', 'Breast').as('sample').out('CaseToEntityAssociation').has('sex', 'female').has('AGE', '50-59').as('donor').select('sample').in('MaterialSampleToEntityAssociation').hasLabel('Gene').or(__.has('id', 'CD274'), __.has('id', 'PDCD1')).as('gene').outE('MaterialSampleToEntityAssociation').has('read-counts', gt('100')).inV().where(eq('sample')).dedup().values('id')
+                    -solution = g.V().hasLabel('MaterialSample').has('SMTS', 'Breast').as('sample').out('CaseToEntityAssociation').has('sex', 'female').has('AGE', '50-59').as('donor').select('sample').in('MaterialSampleToEntityAssociation').hasLabel('Gene').or(__.hasId('CD274'), __.hasId('PDCD1')).as('gene').outE('MaterialSampleToEntityAssociation').has('read-counts', gt('100')).inV().where(eq('sample')).dedup().values('id')
                     -query= "Summarize the molecular functions associated with the genes CD79A, CD79B, CD19, CD22, and CD37."
-                    -solution = g.V().hasLabel('Gene').has('id', within('CD79A', 'CD79B', 'CD19', 'CD22', 'CD37')).in('MacromolecularMachineToMolecularActivityAssociation').hasLabel('MolecularActivity').valueMap('id', 'name')
+                    -solution = g.V().hasLabel('Gene').hasId(within('CD79A', 'CD79B', 'CD19', 'CD22', 'CD37')).in('MacromolecularMachineToMolecularActivityAssociation').hasLabel('MolecularActivity').valueMap('id', 'name')
                     -query = "for a list of genes GENE_IDS, get the mapping to their annotations via edges like ANNOTATION_EDGES and return both gene and annotation information?"
-                    -solution = g.V().hasLabel('Gene').has('id', within(GENE_IDS)).as('gene') \
+                    -solution = g.V().hasLabel('Gene').hasId(within(GENE_IDS)).as('gene') \
                     .union( \
                         __.inE('MacromolecularMachineToMolecularActivityAssociation').outV().hasLabel('MolecularActivity'), \
                         __.inE('MacromolecularMachineToCellularComponentAssociation').outV().hasLabel('CellularComponent'), \
@@ -194,7 +194,7 @@ class Gremlin:
                     .select('gene', 'annotation').by(valueMap('id', 'name')).limit(10)
 
                     -query: "Given the following context from a biological knowledge graph, summarize the roles of the genes FOXP3, IL2RA, and CTLA4 in immune tolerance and regulatory T cell development."
-                    -solution: g.V().hasLabel('Gene').has('id', within('FOXP3', 'IL2RA', 'CTLA4')).as('gene')
+                    -solution: g.V().hasLabel('Gene').hasId(within('FOXP3', 'IL2RA', 'CTLA4')).as('gene')
                                 .union(
                                     __.inE('MacromolecularMachineToMolecularActivityAssociation').outV().hasLabel('MolecularActivity'),
                                     __.inE('MacromolecularMachineToCellularComponentAssociation').outV().hasLabel('CellularComponent'),
@@ -218,7 +218,7 @@ class Gremlin:
                     -query = "give me pmids associated with R-HSA-425410"
                             "what are the pubmed ids for pathway R-HSA-425410"
                             "show pmids for reactome pathway R-HSA-425410"
-                    -solution = g.V().hasLabel('Pathway').has('id', 'R-HSA-425410')
+                    -solution = g.V().hasLabel('Pathway').hasId('R-HSA-425410')
                         .outE('Pathway_reaction_association').inV().hasLabel('Reaction')
                         .outE('Reaction_pmid_association').inV().hasLabel('Pmid').valueMap('id', 'pmid')
 
@@ -243,7 +243,7 @@ class Gremlin:
                     -query = "check if genes IL10, IFNG, FOXP3, CD8A, CD8B exist"
                             "do these genes exist in database"
                             "verify gene presence"
-                    -solution = g.V().hasLabel('Gene').has('id', within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).valueMap('id', 'name')
+                    -solution = g.V().hasLabel('Gene').hasId(within('IL10', 'IFNG', 'FOXP3', 'CD8A', 'CD8B')).valueMap('id', 'name')
                     ### **Answer:**
                     """  # noqa: E501
                 ).strip()
@@ -285,7 +285,7 @@ class Gremlin:
     def _build_judge_prompt(self, user_query, gremlin_query):
         return [
             ChatMessage.from_system(
-                "You are a Gremlin query validator. Respond with 'Yes' or 'No' only. IMPORTANT: hasId('value') is the CORRECT syntax for Neptune, NOT has('id', 'value')."
+                "You are a Gremlin query validator. Respond with 'Yes' or 'No' only. IMPORTANT: hasId('value') is the CORRECT syntax for Neptune, NOT hasId('value'). For pathways, Reactome IDs like 'R-HSA-XXXXX' are stored as the primary 'id' property, so hasId('R-HSA-XXXXX') is correct. FOLLOW THE EXAMPLES PROVIDED - do not suggest alternative paths."
             ),
             ChatMessage.from_user(
                 dedent(
@@ -301,8 +301,10 @@ class Gremlin:
 
                     ### Validation Rules:
                     - hasId('value') is CORRECT ✅
-                    - has('id', 'value') is INCORRECT ❌
-                    - Query should use proper Neptune syntax
+                    - hasId('value') is INCORRECT ❌
+                    - For pathways: hasId('R-HSA-XXXXX') is CORRECT (Reactome IDs are stored as primary id)
+                    - For PMID queries: Gene→Pathway→Reaction→PMID path is PREFERRED
+                    - DO NOT suggest alternative paths like Gene→Protein→Pathway - stick to the examples
 
                     Does the Gremlin query correctly fulfill the user's request? If the answer is "No" also mention why it won't fulfill the user request. Only mention the reason with no.
                     """  # noqa: E501
@@ -340,10 +342,12 @@ class Gremlin:
 
         # Judge first attempt
         first_judgment = self._judge_gremlin_query(judge_llm, user_query, gremlin_query)
+        print(f"🔍 Judge decision for first query: {first_judgment}")
         if first_judgment is True:
             return gremlin_query
         elif isinstance(first_judgment, tuple):
             _, reason = first_judgment
+            print(f"🔍 Judge rejection reason: {reason}")
             # Add reason to user_query for retry
             user_query += (
                 f" A previous try failed because of the following reason: {reason}"
@@ -361,7 +365,7 @@ class Gremlin:
 
     def generate_query(self, question: str) -> str:
         """Generate a Gremlin query from a question."""
-        print(f"🔍 Generating query for: {question[:100]}{'...' if len(question) > 100 else ''}")
+        print(f"🔍 Generating query for: {question}")
         # Use cross-account permissions if needed.
         generator_kwargs = {
             "model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
@@ -372,13 +376,13 @@ class Gremlin:
         generated_query = self._generate_and_validate_query(
             question, self.rag_pipeline_tool, judge_llm
         )
-        print(f"🔍 Generated query: {generated_query[:150]}{'...' if len(generated_query) > 150 else ''}")
+        print(f"🔍 Generated query: {generated_query}")
         logging.info("FINAL GENERATED GREMLIN QUERY: %s", generated_query)
         return generated_query
 
     def get_db_response(self, query: str) -> str | dict[str, Any]:
         """Get the response for a query from the Neptune DB."""
-        print(f"🔍 Executing Neptune query: {query[:100]}{'...' if len(query) > 100 else ''}")
+        print(f"🔍 Executing Neptune query: {query}")
         response = self.neptune_client.execute_gremlin_query(
             gremlinQuery=query, serializer="application/json"
         )
