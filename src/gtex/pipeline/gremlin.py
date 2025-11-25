@@ -125,6 +125,7 @@ class Gremlin:
                     - Do not substitute node labels unless explicitly stated.
                     - Keep in mind to use id and not preferred_id when finding the nodes and edges
                     - **CRITICAL: Always use hasId() method for matching nodes. For pathways, ALWAYS use hasId('R-HSA-XXXXX') format, NEVER use has('name', ...) for pathways**
+                    - **FOR PMID QUERIES: Always use Gene→Pathway→Reaction→PMID path, NEVER use Gene→Protein→Pathway path**
                     - **AVOID COMPLEX OPERATIONS: Do not use .project(), .select() with .by(), or complex data transformations that create LinkedHashMap objects**
                     - **KEEP QUERIES SIMPLE: Use direct traversals like g.V().hasLabel().has().outE().inV().valueMap()**
                     - Only respond with the Gremlin query, with no additional information, introduction, preamble, or post-amble.
@@ -335,10 +336,6 @@ class Gremlin:
         # First try
         response = rag_pipeline_tool.function(user_query)
         gremlin_query = response["reply"].strip()
-        
-        # Post-process: Replace has('id', ...) with hasId(...)
-        gremlin_query = self._fix_has_id_syntax(gremlin_query)
-        
         logging.info("Gremlin Query: %s", gremlin_query)
 
         # Judge first attempt
@@ -355,29 +352,12 @@ class Gremlin:
         # Retry once with updated user query
         response_retry = rag_pipeline_tool.function(user_query)
         gremlin_query_retry = response_retry["reply"].strip()
-        
-        # Post-process retry as well
-        gremlin_query_retry = self._fix_has_id_syntax(gremlin_query_retry)
-        
         logging.info("Retry Gremlin Query: %s", gremlin_query_retry)
 
         if self._judge_gremlin_query(judge_llm, user_query, gremlin_query_retry):
             return gremlin_query_retry
 
         return "ERROR: Could not generate a valid Gremlin query for this request."
-    
-    def _fix_has_id_syntax(self, query: str) -> str:
-        """Replace has('id', 'value') with hasId('value') in Gremlin queries."""
-        import re
-        # Pattern to match has('id', 'value') and replace with hasId('value')
-        pattern = r"\.has\('id',\s*'([^']+)'\)"
-        replacement = r".hasId('\1')"
-        fixed_query = re.sub(pattern, replacement, query)
-        
-        if fixed_query != query:
-            print(f"🔧 Fixed query syntax: has('id', ...) → hasId(...)")
-        
-        return fixed_query
 
     def generate_query(self, question: str) -> str:
         """Generate a Gremlin query from a question."""
