@@ -268,10 +268,14 @@ class EntityExtractorComponent:
             quoted_pathways = re.findall(pathway_pattern, content, re.IGNORECASE)
             print(f"🔍 QUOTED PATHWAYS FOUND: {quoted_pathways}")
 
-            # Remove quoted pathway parts from content for spaCy processing
-            clean_content = re.sub(
-                pathway_pattern, "", content, flags=re.IGNORECASE
-            ).strip()
+            # Extract quoted disease names: disease 'name' or disease "name"
+            disease_pattern = r"disease\s+['\"]([^'\"]+)['\"]"
+            quoted_diseases = re.findall(disease_pattern, content, re.IGNORECASE)
+            print(f"🔍 QUOTED DISEASES FOUND: {quoted_diseases}")
+
+            # Remove quoted pathway and disease parts from content for spaCy processing
+            clean_content = re.sub(pathway_pattern, "", content, flags=re.IGNORECASE)
+            clean_content = re.sub(disease_pattern, "", clean_content, flags=re.IGNORECASE).strip()
             print(f"🔍 CLEAN CONTENT FOR SPACY: {clean_content}")
 
             # Step 2: Use spaCy on cleaned content to find genes
@@ -365,7 +369,7 @@ class EntityExtractorComponent:
             print(f"🔍 DIRECT PATHWAY IDS: {direct_pathway_ids}")
 
             # Step 4: Combine all entities
-            all_entities = spacy_entities + quoted_pathways + direct_pathway_ids
+            all_entities = spacy_entities + quoted_pathways + quoted_diseases + direct_pathway_ids
             print(f"🔍 ALL ENTITIES BEFORE TYPING: {all_entities}")
 
             # Step 5: Load pathway mapping for fuzzy matching and resolution
@@ -481,8 +485,47 @@ class EntityExtractorComponent:
                             f"🔍 NO FUZZY MATCH FOUND: Keeping '{quoted_pathway}' as-is"
                         )
 
+            # Step 6.5: Process quoted diseases with fuzzy matching
+            resolved_diseases = []
+            disease_mapping = {}
+            try:
+                import json
+                disease_mapping_path = self.entities_path / "../disease_mapping.json"
+                if disease_mapping_path.exists():
+                    with open(disease_mapping_path) as f:
+                        disease_mapping = json.load(f)
+                    print(f"🔍 LOADED {len(disease_mapping)} DISEASE MAPPINGS")
+            except Exception:
+                pass
+
+            for quoted_disease in quoted_diseases:
+                print(f"🔍 PROCESSING QUOTED DISEASE: '{quoted_disease}'")
+
+                # Try exact match first
+                if quoted_disease in disease_mapping:
+                    resolved_diseases.append(disease_mapping[quoted_disease])  # Use ID, not name
+                    print(f"🔍 EXACT MATCH: '{quoted_disease}' → {disease_mapping[quoted_disease]}")
+                else:
+                    # Find fuzzy matches
+                    from difflib import SequenceMatcher
+                    matches = []
+                    for disease_name in disease_mapping.keys():
+                        if not disease_name.startswith(("OMIM:", "ORPHA:")):
+                            ratio = SequenceMatcher(None, quoted_disease.lower(), disease_name.lower()).ratio()
+                            if ratio > 0.7:
+                                matches.append((disease_name, ratio))
+
+                    matches.sort(key=lambda x: x[1], reverse=True)
+                    if matches:
+                        best_match = matches[0][0]
+                        resolved_diseases.append(disease_mapping[best_match])  # Use ID, not name
+                        print(f"🔍 FUZZY MATCH: '{quoted_disease}' → '{best_match}' (ID: {disease_mapping[best_match]})")
+                    else:
+                        resolved_diseases.append(quoted_disease)
+                        print(f"🔍 NO FUZZY MATCH FOUND: Keeping '{quoted_disease}' as-is")
+
             # Step 7: Combine final entities
-            final_entities = spacy_entities + resolved_pathways + direct_pathway_ids
+            final_entities = spacy_entities + resolved_pathways + resolved_diseases + direct_pathway_ids
             print(f"🔍 FINAL ENTITIES FOR TYPING: {final_entities}")
 
             # Step 8: Get entity types
@@ -544,8 +587,12 @@ class EntityExtractorComponent:
                     [
                         (
                             f"{entity} ({etype})"
-                            if etype != "Pathway"
-                            else self._format_pathway_display(entity)
+                            if etype not in ["Pathway", "Disease"]
+                            else (
+                                self._format_pathway_display(entity)
+                                if etype == "Pathway"
+                                else self._format_disease_display(entity)
+                            )
                         )
                         for entity, etype in entities_to_types.items()
                     ]
@@ -637,6 +684,24 @@ class EntityExtractorComponent:
             pass
         return f"{pathway_id} (Pathway)"
 
+    def _format_disease_display(self, disease_id):
+        """Format disease display to show both ID and name."""
+        try:
+            import json
+
+            mapping_path = self.entities_path / "../disease_mapping.json"
+            if mapping_path.exists():
+                with open(mapping_path) as f:
+                    disease_mapping = json.load(f)
+                # Create reverse mapping to get name from ID
+                id_to_name = {v: k for k, v in disease_mapping.items() if k != v and not k.startswith(("OMIM:", "ORPHA:"))}
+                disease_name = id_to_name.get(disease_id, "")
+                if disease_name:
+                    return f"{disease_name} - {disease_id} (Disease)"
+        except Exception:
+            pass
+        return f"{disease_id} (Disease)"
+
     def _resolve_gene_alias(self, gene_symbol):
         """Resolve gene alias to official symbol with multi-level resolution."""
         # Load gene alias mapping
@@ -709,6 +774,7 @@ class EntityExtractorComponent:
 
         # Load pathway mapping for enhanced pathway resolution
         pathway_mapping = {}
+        disease_mapping = {}
         try:
             import json
 
@@ -716,6 +782,11 @@ class EntityExtractorComponent:
             if mapping_path.exists():
                 with open(mapping_path) as f:
                     pathway_mapping = json.load(f)
+                    
+            disease_mapping_path = self.entities_path / "../disease_mapping.json"
+            if disease_mapping_path.exists():
+                with open(disease_mapping_path) as f:
+                    disease_mapping = json.load(f)
         except Exception:
             pass
 
@@ -733,6 +804,28 @@ class EntityExtractorComponent:
                         if entity.lower() in [e.lower() for e in file_entities]:
                             entities_to_types[entity] = entity_type
                             print(f"🔍 MATCHED {entity_type}: '{entity}'")
+                        
+                        # Check if entity appears in parentheses (for Disease IDs like OMIM:167000)
+                        elif entity_type == "Disease":
+                            for file_entity in file_entities:
+                                if f"({entity})" in file_entity:
+                                    entities_to_types[entity] = entity_type
+                                    print(f"🔍 MATCHED {entity_type} ID: '{entity}' in '{file_entity}'")
+                                    break
+                                # Also check if entity matches the disease name part (before parentheses)
+                                elif "(" in file_entity:
+                                    disease_name = file_entity.split("(")[0].strip()
+                                    if entity.lower() == disease_name.lower():
+                                        entities_to_types[entity] = entity_type
+                                        print(f"🔍 MATCHED {entity_type} NAME: '{entity}' → '{file_entity}'")
+                                        break
+                            
+                            # If no exact match, try fuzzy matching for disease names
+                            if entity not in entities_to_types:
+                                resolved_disease = self._resolve_disease_alias(entity, disease_mapping)
+                                if resolved_disease:
+                                    entities_to_types[resolved_disease] = entity_type
+                                    print(f"🔍 DISEASE RESOLVED: '{entity}' → '{resolved_disease}'")
 
                         # Enhanced pathway matching with alias resolution
                         elif entity_type == "Pathway":
@@ -785,6 +878,31 @@ class EntityExtractorComponent:
                     return pathway_id
 
         return None
+
+    def _resolve_disease_alias(self, entity, disease_mapping):
+        """Resolve disease aliases similar to pathway alias resolution."""
+        # Direct exact match - return the ID, not the name
+        if entity in disease_mapping:
+            return disease_mapping[entity]
+
+        # Case-insensitive match
+        for disease_name, disease_id in disease_mapping.items():
+            if entity.lower() == disease_name.lower():
+                return disease_id
+
+        # Fuzzy matching for partial matches
+        from difflib import SequenceMatcher
+        best_match = None
+        best_ratio = 0.0
+        
+        for disease_name, disease_id in disease_mapping.items():
+            if not disease_name.startswith(("OMIM:", "ORPHA:")):  # Skip IDs, only match names
+                ratio = SequenceMatcher(None, entity.lower(), disease_name.lower()).ratio()
+                if ratio > 0.8 and ratio > best_ratio:  # Higher threshold for entity typing
+                    best_match = disease_id
+                    best_ratio = ratio
+
+        return best_match
 
 
 @component
@@ -1018,8 +1136,12 @@ class GTExProcessorComponent:
         # Replace entity names with resolved IDs in the current query
         enhanced_query = current_query
         pathway_mapping = self._load_pathway_mapping()
+        disease_mapping = self._load_disease_mapping()
         print(
             f"🔍 LOADED PATHWAY MAPPING FOR REPLACEMENT: {len(pathway_mapping)} entries"
+        )
+        print(
+            f"🔍 LOADED DISEASE MAPPING FOR REPLACEMENT: {len(disease_mapping)} entries"
         )
 
         for entity_id, entity_type in entities.items():
@@ -1071,6 +1193,24 @@ class GTExProcessorComponent:
                                     f"🔍 PATHWAY NAME NOT FOUND IN QUERY: '{pathway_name}' not in '{enhanced_query}'"
                                 )
                             break
+            
+            elif entity_type == "Disease":
+                print(f"🔍 PROCESSING DISEASE ID: {entity_id}")
+                
+                # Find the disease name that maps to this ID
+                disease_to_replace = None
+                for disease_name, disease_id in disease_mapping.items():
+                    if disease_id == entity_id and not disease_name.startswith(("OMIM:", "ORPHA:")) and disease_name != entity_id:
+                        disease_to_replace = disease_name
+                        break
+                
+                if disease_to_replace and disease_to_replace.lower() in enhanced_query.lower():
+                    import re
+                    pattern = re.compile(re.escape(disease_to_replace), re.IGNORECASE)
+                    enhanced_query = pattern.sub(entity_id, enhanced_query)
+                    print(f"🔍 REPLACED IN QUERY: '{disease_to_replace}' → '{entity_id}'")
+                else:
+                    print(f"🔍 DISEASE NAME NOT FOUND IN QUERY for {entity_id}")
 
         print(f"🔍 ENHANCED QUERY: {enhanced_query}")
 
@@ -1186,6 +1326,19 @@ class GTExProcessorComponent:
             import json
 
             mapping_path = Path(self.entities_path) / "../pathway_mapping.json"
+            if mapping_path.exists():
+                with open(mapping_path) as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _load_disease_mapping(self):
+        """Load disease mapping for name-to-ID resolution."""
+        try:
+            import json
+
+            mapping_path = Path(self.entities_path) / "../disease_mapping.json"
             if mapping_path.exists():
                 with open(mapping_path) as f:
                     return json.load(f)
