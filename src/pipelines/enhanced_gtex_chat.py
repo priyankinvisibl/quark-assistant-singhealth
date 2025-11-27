@@ -51,53 +51,82 @@ class PreProcessorComponent:
 
             pathway_choices = last_msg.metadata.get("pathway_choices", [])
             pathway_ids = last_msg.metadata.get("pathway_ids", [])
+            disease_choices = last_msg.metadata.get("disease_choices", [])
+            disease_ids = last_msg.metadata.get("disease_ids", [])
+            variant_choices = last_msg.metadata.get("variant_choices", [])
+            variant_ids = last_msg.metadata.get("variant_ids", [])
 
             if user_response.isdigit():
                 choice_num = int(user_response)
-                if 1 <= choice_num <= len(pathway_choices):
+                
+                # Handle pathway choice
+                if pathway_choices and 1 <= choice_num <= len(pathway_choices):
                     chosen_pathway = pathway_choices[choice_num - 1]
-                    chosen_pathway_id = (
-                        pathway_ids[choice_num - 1]
-                        if choice_num <= len(pathway_ids)
-                        else chosen_pathway
-                    )
-                    print(
-                        f"🔍 USER CHOSE PATHWAY: {choice_num} → '{chosen_pathway}' (ID: {chosen_pathway_id})"
-                    )
+                    chosen_pathway_id = pathway_ids[choice_num - 1] if choice_num <= len(pathway_ids) else chosen_pathway
+                    print(f"🔍 USER CHOSE PATHWAY: {choice_num} → '{chosen_pathway}' (ID: {chosen_pathway_id})")
 
                     # Get original query from history
                     original_query = ""
                     for msg in reversed(history):
-                        if (
-                            msg.role == "user"
-                            and len(msg.content) > 10
-                            and not msg.content.strip().isdigit()
-                        ):
+                        if (msg.role == "user" and len(msg.content) > 10 and not msg.content.strip().isdigit()):
                             original_query = msg.content
                             break
 
                     # Process with chosen pathway
                     processor = GTExProcessorComponent(
-                        self.config,
-                        self.schema_path,
-                        self.model_path,
-                        self.entities_path,
-                        self.entities_file_type,
-                        self.mem_client,
+                        self.config, self.schema_path, self.model_path, self.entities_path, self.entities_file_type, self.mem_client,
                     )
 
                     original_message = {**message, "content": original_query}
-                    # Pass original pathway info for correct replacement
                     original_pathway = last_msg.metadata.get("original_pathway", "")
-                    result = processor.run(
-                        {chosen_pathway_id: "Pathway"},
-                        original_message,
-                        original_pathway_name=original_pathway,
+                    result = processor.run({chosen_pathway_id: "Pathway"}, original_message, original_pathway_name=original_pathway)
+                    return {"action": "handled", "final_message": result["final_message"]}
+                
+                # Handle disease choice
+                elif disease_choices and 1 <= choice_num <= len(disease_choices):
+                    chosen_disease = disease_choices[choice_num - 1]
+                    chosen_disease_id = disease_ids[choice_num - 1] if choice_num <= len(disease_ids) else chosen_disease
+                    print(f"🔍 USER CHOSE DISEASE: {choice_num} → '{chosen_disease}' (ID: {chosen_disease_id})")
+
+                    # Get original query from history
+                    original_query = ""
+                    for msg in reversed(history):
+                        if (msg.role == "user" and len(msg.content) > 10 and not msg.content.strip().isdigit()):
+                            original_query = msg.content
+                            break
+
+                    # Process with chosen disease
+                    processor = GTExProcessorComponent(
+                        self.config, self.schema_path, self.model_path, self.entities_path, self.entities_file_type, self.mem_client,
                     )
-                    return {
-                        "action": "handled",
-                        "final_message": result["final_message"],
-                    }
+
+                    original_message = {**message, "content": original_query}
+                    original_disease = last_msg.metadata.get("original_disease", "")
+                    result = processor.run({chosen_disease_id: "Disease"}, original_message, original_disease_name=original_disease)
+                    return {"action": "handled", "final_message": result["final_message"]}
+                
+                # Handle variant choice
+                elif variant_choices and 1 <= choice_num <= len(variant_choices):
+                    chosen_variant = variant_choices[choice_num - 1]
+                    chosen_variant_id = variant_ids[choice_num - 1] if choice_num <= len(variant_ids) else chosen_variant
+                    print(f"🔍 USER CHOSE VARIANT: {choice_num} → '{chosen_variant}' (ID: {chosen_variant_id})")
+
+                    # Get original query from history
+                    original_query = ""
+                    for msg in reversed(history):
+                        if (msg.role == "user" and len(msg.content) > 10 and not msg.content.strip().isdigit()):
+                            original_query = msg.content
+                            break
+
+                    # Process with chosen variant
+                    processor = GTExProcessorComponent(
+                        self.config, self.schema_path, self.model_path, self.entities_path, self.entities_file_type, self.mem_client,
+                    )
+
+                    original_message = {**message, "content": original_query}
+                    original_variant = last_msg.metadata.get("original_variant", "")
+                    result = processor.run({chosen_variant_id: "Variant"}, original_message, original_variant_name=original_variant)
+                    return {"action": "handled", "final_message": result["final_message"]}
 
         # Check for entity validation response
         if last_msg.role == "assistant" and last_msg.metadata.get("validation_request"):
@@ -273,9 +302,25 @@ class EntityExtractorComponent:
             quoted_diseases = re.findall(disease_pattern, content, re.IGNORECASE)
             print(f"🔍 QUOTED DISEASES FOUND: {quoted_diseases}")
 
-            # Remove quoted pathway and disease parts from content for spaCy processing
+            # Extract quoted variant names: variant 'name' or variant "name" or feature:variant format
+            variant_pattern = r"variant\s+['\"]([^'\"]+)['\"]"
+            quoted_variants = re.findall(variant_pattern, content, re.IGNORECASE)
+            
+            # Also extract colon-separated variants: GENE:VARIANT
+            colon_variant_pattern = r"\b([A-Z0-9_]+):([A-Z0-9_]+)\b"
+            colon_variants = re.findall(colon_variant_pattern, content)
+            # Convert to feature:variant format
+            colon_variants = [f"{gene}:{variant}" for gene, variant in colon_variants]
+            
+            all_quoted_variants = quoted_variants + colon_variants
+            print(f"🔍 QUOTED VARIANTS FOUND: {quoted_variants}")
+            print(f"🔍 COLON VARIANTS FOUND: {colon_variants}")
+            print(f"🔍 ALL VARIANTS: {all_quoted_variants}")
+
+            # Remove quoted pathway, disease and variant parts from content for spaCy processing
             clean_content = re.sub(pathway_pattern, "", content, flags=re.IGNORECASE)
-            clean_content = re.sub(disease_pattern, "", clean_content, flags=re.IGNORECASE).strip()
+            clean_content = re.sub(disease_pattern, "", clean_content, flags=re.IGNORECASE)
+            clean_content = re.sub(variant_pattern, "", clean_content, flags=re.IGNORECASE).strip()
             print(f"🔍 CLEAN CONTENT FOR SPACY: {clean_content}")
 
             # Step 2: Use spaCy on cleaned content to find genes
@@ -360,6 +405,18 @@ class EntityExtractorComponent:
             spacy_entities = [
                 ent for ent in raw_spacy_entities if ent.lower() not in common_words
             ]
+            
+            # Additional filter for common biological terms that shouldn't be entities
+            biological_stopwords = {
+                "disease", "diseases", "pathway", "pathways", "gene", "genes", 
+                "protein", "proteins", "variant", "variants", "associated", 
+                "involved", "related", "linked", "connected", "what", "which",
+                "how", "where", "when", "why", "are", "is", "with", "in", "of"
+            }
+            
+            spacy_entities = [
+                ent for ent in spacy_entities if ent.lower() not in biological_stopwords
+            ]
             print(f"🔍 RAW SPACY ENTITIES: {raw_spacy_entities}")
             print(f"🔍 FILTERED SPACY ENTITIES: {spacy_entities}")
 
@@ -369,7 +426,7 @@ class EntityExtractorComponent:
             print(f"🔍 DIRECT PATHWAY IDS: {direct_pathway_ids}")
 
             # Step 4: Combine all entities
-            all_entities = spacy_entities + quoted_pathways + quoted_diseases + direct_pathway_ids
+            all_entities = spacy_entities + quoted_pathways + quoted_diseases + all_quoted_variants + direct_pathway_ids
             print(f"🔍 ALL ENTITIES BEFORE TYPING: {all_entities}")
 
             # Step 5: Load pathway mapping for fuzzy matching and resolution
@@ -382,6 +439,18 @@ class EntityExtractorComponent:
                     with open(mapping_path) as f:
                         pathway_mapping = json.load(f)
                     print(f"🔍 LOADED {len(pathway_mapping)} PATHWAY MAPPINGS")
+            except Exception:
+                pass
+
+            # Load variant mapping
+            variant_mapping = {}
+            try:
+                import json
+                variant_mapping_path = self.entities_path / "../variant_mapping.json"
+                if variant_mapping_path.exists():
+                    with open(variant_mapping_path) as f:
+                        variant_mapping = json.load(f)
+                    print(f"🔍 LOADED {len(variant_mapping)} VARIANT MAPPINGS")
             except Exception:
                 pass
 
@@ -503,11 +572,12 @@ class EntityExtractorComponent:
 
                 # Try exact match first
                 if quoted_disease in disease_mapping:
-                    resolved_diseases.append(disease_mapping[quoted_disease])  # Use ID, not name
+                    resolved_diseases.append(quoted_disease)
                     print(f"🔍 EXACT MATCH: '{quoted_disease}' → {disease_mapping[quoted_disease]}")
                 else:
-                    # Find fuzzy matches
+                    # Find multiple fuzzy matches
                     from difflib import SequenceMatcher
+
                     matches = []
                     for disease_name in disease_mapping.keys():
                         if not disease_name.startswith(("OMIM:", "ORPHA:")):
@@ -515,17 +585,142 @@ class EntityExtractorComponent:
                             if ratio > 0.7:
                                 matches.append((disease_name, ratio))
 
+                    # Sort by similarity (best first)
                     matches.sort(key=lambda x: x[1], reverse=True)
-                    if matches:
+
+                    if len(matches) == 1:
+                        # Single clear match
                         best_match = matches[0][0]
-                        resolved_diseases.append(disease_mapping[best_match])  # Use ID, not name
-                        print(f"🔍 FUZZY MATCH: '{quoted_disease}' → '{best_match}' (ID: {disease_mapping[best_match]})")
+                        resolved_diseases.append(best_match)
+                        print(f"🔍 SINGLE FUZZY MATCH: '{quoted_disease}' → '{best_match}' (similarity: {matches[0][1]:.2f})")
+                    elif len(matches) > 1:
+                        # Multiple matches - ask user to choose
+                        print(f"🔍 MULTIPLE MATCHES FOUND: {len(matches)} options")
+
+                        # Create multiple choice prompt with all identified entities
+                        # Get entity types first to filter properly
+                        final_entities = spacy_entities + resolved_pathways + resolved_diseases + direct_pathway_ids
+                        entities_to_types = self._get_entity_types(final_entities)
+
+                        # Show only actual genes identified
+                        genes_found = [entity for entity, etype in entities_to_types.items() if etype == "Gene"]
+                        genes_display = f"Genes: {', '.join(genes_found)}" if genes_found else "Genes: None"
+
+                        # Show disease matches with their IDs
+                        disease_matches = []
+                        disease_ids = []  # Store IDs separately
+                        for i, (disease_name, similarity) in enumerate(matches[:5], 1):
+                            disease_id = disease_mapping.get(disease_name, "Unknown ID")
+                            disease_matches.append(f"{i}. {disease_name} (ID: {disease_id})")
+                            disease_ids.append(disease_id)
+
+                        choice_prompt = (
+                            f"**Identified Entities:**\n{genes_display}\n\n**Multiple disease matches found for '{quoted_disease}':**\n"
+                            + "\n".join(disease_matches)
+                            + f"\n\nWhich disease did you mean? Reply with the number (1-{min(5, len(matches))}) or type the exact disease name."
+                        )
+
+                        # Return early with choice prompt
+                        user_message = Message(**message)
+                        assistant_message = Message(
+                            content=choice_prompt,
+                            origin=message["origin"],
+                            memory_id=message["memory_id"],
+                            role="assistant",
+                            metadata={
+                                "disease_choices": [match[0] for match in matches[:5]],
+                                "disease_ids": disease_ids,  # Store corresponding IDs
+                                "original_disease": quoted_disease,
+                                "choice_request": True,
+                            },
+                        )
+                        self.mem_client.add_messages(user_message)
+                        self.mem_client.add_messages(assistant_message)
+                        return {"final_message": assistant_message}
                     else:
-                        resolved_diseases.append(quoted_disease)
+                        # No matches found
+                        resolved_diseases.append(quoted_disease)  # Keep original
                         print(f"🔍 NO FUZZY MATCH FOUND: Keeping '{quoted_disease}' as-is")
 
+            # Step 6.6: Process quoted variants with fuzzy matching
+            resolved_variants = []
+            for quoted_variant in all_quoted_variants:
+                print(f"🔍 PROCESSING QUOTED VARIANT: '{quoted_variant}'")
+
+                # Try exact match first
+                if quoted_variant in variant_mapping:
+                    resolved_variants.append(quoted_variant)
+                    print(f"🔍 EXACT MATCH: '{quoted_variant}' → {variant_mapping[quoted_variant]}")
+                else:
+                    # Find multiple fuzzy matches
+                    from difflib import SequenceMatcher
+
+                    matches = []
+                    for variant_name in variant_mapping.keys():
+                        if not variant_name.startswith("civic_variant:"):
+                            ratio = SequenceMatcher(None, quoted_variant.lower(), variant_name.lower()).ratio()
+                            if ratio > 0.7:
+                                matches.append((variant_name, ratio))
+
+                    # Sort by similarity (best first)
+                    matches.sort(key=lambda x: x[1], reverse=True)
+
+                    if len(matches) == 1:
+                        # Single clear match
+                        best_match = matches[0][0]
+                        resolved_variants.append(best_match)
+                        print(f"🔍 SINGLE FUZZY MATCH: '{quoted_variant}' → '{best_match}' (similarity: {matches[0][1]:.2f})")
+                    elif len(matches) > 1:
+                        # Multiple matches - ask user to choose
+                        print(f"🔍 MULTIPLE MATCHES FOUND: {len(matches)} options")
+
+                        # Create multiple choice prompt with all identified entities
+                        # Get entity types first to filter properly
+                        final_entities = spacy_entities + resolved_pathways + resolved_diseases + resolved_variants + direct_pathway_ids
+                        entities_to_types = self._get_entity_types(final_entities)
+
+                        # Show only actual genes identified
+                        genes_found = [entity for entity, etype in entities_to_types.items() if etype == "Gene"]
+                        genes_display = f"Genes: {', '.join(genes_found)}" if genes_found else "Genes: None"
+
+                        # Show variant matches with their IDs
+                        variant_matches = []
+                        variant_ids = []  # Store IDs separately
+                        for i, (variant_name, similarity) in enumerate(matches[:5], 1):
+                            variant_id = variant_mapping.get(variant_name, "Unknown ID")
+                            variant_matches.append(f"{i}. {variant_name} (ID: {variant_id})")
+                            variant_ids.append(variant_id)
+
+                        choice_prompt = (
+                            f"**Identified Entities:**\n{genes_display}\n\n**Multiple variant matches found for '{quoted_variant}':**\n"
+                            + "\n".join(variant_matches)
+                            + f"\n\nWhich variant did you mean? Reply with the number (1-{min(5, len(matches))}) or type the exact variant name."
+                        )
+
+                        # Return early with choice prompt
+                        user_message = Message(**message)
+                        assistant_message = Message(
+                            content=choice_prompt,
+                            origin=message["origin"],
+                            memory_id=message["memory_id"],
+                            role="assistant",
+                            metadata={
+                                "variant_choices": [match[0] for match in matches[:5]],
+                                "variant_ids": variant_ids,  # Store corresponding IDs
+                                "original_variant": quoted_variant,
+                                "choice_request": True,
+                            },
+                        )
+                        self.mem_client.add_messages(user_message)
+                        self.mem_client.add_messages(assistant_message)
+                        return {"final_message": assistant_message}
+                    else:
+                        # No matches found
+                        resolved_variants.append(quoted_variant)  # Keep original
+                        print(f"🔍 NO FUZZY MATCH FOUND: Keeping '{quoted_variant}' as-is")
+
             # Step 7: Combine final entities
-            final_entities = spacy_entities + resolved_pathways + resolved_diseases + direct_pathway_ids
+            final_entities = spacy_entities + resolved_pathways + resolved_diseases + resolved_variants + direct_pathway_ids
             print(f"🔍 FINAL ENTITIES FOR TYPING: {final_entities}")
 
             # Step 8: Get entity types
@@ -775,6 +970,7 @@ class EntityExtractorComponent:
         # Load pathway mapping for enhanced pathway resolution
         pathway_mapping = {}
         disease_mapping = {}
+        variant_mapping = {}
         try:
             import json
 
@@ -787,6 +983,11 @@ class EntityExtractorComponent:
             if disease_mapping_path.exists():
                 with open(disease_mapping_path) as f:
                     disease_mapping = json.load(f)
+                    
+            variant_mapping_path = self.entities_path / "../variant_mapping.json"
+            if variant_mapping_path.exists():
+                with open(variant_mapping_path) as f:
+                    variant_mapping = json.load(f)
         except Exception:
             pass
 
@@ -838,6 +1039,13 @@ class EntityExtractorComponent:
                                 print(
                                     f"🔍 PATHWAY RESOLVED: '{entity}' → '{resolved_pathway}'"
                                 )
+                        
+                        # Enhanced variant matching with alias resolution
+                        elif entity_type == "Variant":
+                            resolved_variant = self._resolve_variant_alias(entity, variant_mapping)
+                            if resolved_variant:
+                                entities_to_types[resolved_variant] = entity_type
+                                print(f"🔍 VARIANT RESOLVED: '{entity}' → '{resolved_variant}'")
             except Exception as e:
                 print(f"🔍 ERROR PROCESSING {txt_path}: {e}")
                 continue
@@ -903,6 +1111,27 @@ class EntityExtractorComponent:
                     best_ratio = ratio
 
         return best_match
+
+    def _resolve_variant_alias(self, entity, variant_mapping):
+        """Resolve variant aliases similar to pathway alias resolution."""
+        # Direct exact match - return the ID, not the name
+        if entity in variant_mapping:
+            return variant_mapping[entity]
+
+        # Case-insensitive match
+        for variant_name, variant_id in variant_mapping.items():
+            if entity.lower() == variant_name.lower():
+                return variant_id
+
+        # Partial matching for common variations
+        entity_lower = entity.lower()
+        for variant_name, variant_id in variant_mapping.items():
+            variant_lower = variant_name.lower()
+            # Handle common variations in variant names
+            if entity_lower in variant_lower or variant_lower in entity_lower:
+                return variant_id
+
+        return None
 
 
 @component
@@ -1114,6 +1343,8 @@ class GTExProcessorComponent:
         entities: Dict[str, str],
         message: Dict[str, Any],
         original_pathway_name: str = "",
+        original_disease_name: str = "",
+        original_variant_name: str = "",
     ) -> Dict[str, Any]:
         # Use the CURRENT message content, not conversation history
         current_query = message["content"]
@@ -1137,11 +1368,15 @@ class GTExProcessorComponent:
         enhanced_query = current_query
         pathway_mapping = self._load_pathway_mapping()
         disease_mapping = self._load_disease_mapping()
+        variant_mapping = self._load_variant_mapping()
         print(
             f"🔍 LOADED PATHWAY MAPPING FOR REPLACEMENT: {len(pathway_mapping)} entries"
         )
         print(
             f"🔍 LOADED DISEASE MAPPING FOR REPLACEMENT: {len(disease_mapping)} entries"
+        )
+        print(
+            f"🔍 LOADED VARIANT MAPPING FOR REPLACEMENT: {len(variant_mapping)} entries"
         )
 
         for entity_id, entity_type in entities.items():
@@ -1197,20 +1432,58 @@ class GTExProcessorComponent:
             elif entity_type == "Disease":
                 print(f"🔍 PROCESSING DISEASE ID: {entity_id}")
                 
-                # Find the disease name that maps to this ID
-                disease_to_replace = None
-                for disease_name, disease_id in disease_mapping.items():
-                    if disease_id == entity_id and not disease_name.startswith(("OMIM:", "ORPHA:")) and disease_name != entity_id:
-                        disease_to_replace = disease_name
-                        break
-                
-                if disease_to_replace and disease_to_replace.lower() in enhanced_query.lower():
-                    import re
-                    pattern = re.compile(re.escape(disease_to_replace), re.IGNORECASE)
-                    enhanced_query = pattern.sub(entity_id, enhanced_query)
-                    print(f"🔍 REPLACED IN QUERY: '{disease_to_replace}' → '{entity_id}'")
+                # Use original disease name if provided, otherwise look it up
+                if original_disease_name:
+                    disease_to_replace = original_disease_name
+                    print(f"🔍 USING ORIGINAL DISEASE NAME: '{disease_to_replace}'")
+
+                    if disease_to_replace.lower() in enhanced_query.lower():
+                        # Case-insensitive replacement
+                        import re
+                        pattern = re.compile(re.escape(disease_to_replace), re.IGNORECASE)
+                        enhanced_query = pattern.sub(entity_id, enhanced_query)
+                        print(f"🔍 REPLACED IN QUERY: '{disease_to_replace}' → '{entity_id}'")
+                    else:
+                        print(f"🔍 DISEASE NAME NOT FOUND IN QUERY: '{disease_to_replace}' not in '{enhanced_query}'")
                 else:
-                    print(f"🔍 DISEASE NAME NOT FOUND IN QUERY for {entity_id}")
+                    # Fallback to lookup (existing logic)
+                    disease_to_replace = None
+                    for disease_name, disease_id in disease_mapping.items():
+                        if disease_id == entity_id and not disease_name.startswith(("OMIM:", "ORPHA:")) and disease_name != entity_id:
+                            disease_to_replace = disease_name
+                            break
+                    
+                    if disease_to_replace and disease_to_replace.lower() in enhanced_query.lower():
+                        import re
+                        pattern = re.compile(re.escape(disease_to_replace), re.IGNORECASE)
+                        enhanced_query = pattern.sub(entity_id, enhanced_query)
+                        print(f"🔍 REPLACED IN QUERY: '{disease_to_replace}' → '{entity_id}'")
+                    else:
+                        print(f"🔍 DISEASE NAME NOT FOUND IN QUERY for {entity_id}")
+            
+            elif entity_type == "Variant":
+                print(f"🔍 PROCESSING VARIANT: {entity_id}")
+                
+                # For variants, entity_id is the variant name, we need to get the actual ID
+                variant_civic_id = variant_mapping.get(entity_id, entity_id)
+                print(f"🔍 VARIANT MAPPING: '{entity_id}' → '{variant_civic_id}'")
+                
+                # Use original variant name if provided, otherwise use the entity_id
+                if original_variant_name:
+                    variant_to_replace = original_variant_name
+                    print(f"🔍 USING ORIGINAL VARIANT NAME: '{variant_to_replace}'")
+                else:
+                    variant_to_replace = entity_id
+                    print(f"🔍 USING ENTITY VARIANT NAME: '{variant_to_replace}'")
+
+                if variant_to_replace.lower() in enhanced_query.lower():
+                    # Case-insensitive replacement
+                    import re
+                    pattern = re.compile(re.escape(variant_to_replace), re.IGNORECASE)
+                    enhanced_query = pattern.sub(variant_civic_id, enhanced_query)
+                    print(f"🔍 REPLACED IN QUERY: '{variant_to_replace}' → '{variant_civic_id}'")
+                else:
+                    print(f"🔍 VARIANT NAME NOT FOUND IN QUERY: '{variant_to_replace}' not in '{enhanced_query}'")
 
         print(f"🔍 ENHANCED QUERY: {enhanced_query}")
 
@@ -1339,6 +1612,19 @@ class GTExProcessorComponent:
             import json
 
             mapping_path = Path(self.entities_path) / "../disease_mapping.json"
+            if mapping_path.exists():
+                with open(mapping_path) as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _load_variant_mapping(self):
+        """Load variant mapping for name-to-ID resolution."""
+        try:
+            import json
+
+            mapping_path = Path(self.entities_path) / "../variant_mapping.json"
             if mapping_path.exists():
                 with open(mapping_path) as f:
                     return json.load(f)
